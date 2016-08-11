@@ -30,6 +30,7 @@ public class Downloader {
                 setDownloadRange(conn, offset, count);
 
             connectOrThrow(conn);
+            
             return conn.getInputStream();
         } finally {
             if (is != null)
