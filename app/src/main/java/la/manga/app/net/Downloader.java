@@ -16,11 +16,20 @@ public class Downloader {
     public Downloader() {
     }
 
-    public InputStream downloadStream(URL url) throws IOException {
+    public InputStream downloadWithOffset(URL url, int offset) throws IOException {
+        return downloadRange(url, offset, 0);
+    }
+
+    public InputStream downloadRange(URL url, int offset, int count) throws IOException {
         InputStream is = null;
 
         try {
             HttpURLConnection conn = open(url);
+
+            if (offset != 0 || count != 0)
+                setDownloadRange(conn, offset, count);
+
+            connectOrThrow(conn);
             return conn.getInputStream();
         } finally {
             if (is != null)
@@ -28,10 +37,13 @@ public class Downloader {
         }
     }
 
+    public InputStream download(URL url) throws IOException {
+        return downloadRange(url, 0, 0);
+    }
+
     private HttpURLConnection open(URL url) throws IOException {
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         setDefaultSettings(conn);
-        connectOrThrow(conn);
         return conn;
     }
 
@@ -45,12 +57,23 @@ public class Downloader {
                                                 + "Chrome/52.0.2743.116 Safari/537.36");
     }
 
+    private void setDownloadRange(HttpURLConnection conn, int offset, int count) {
+        StringBuilder sb = new StringBuilder("bytes=");
+        sb.append(offset);
+        sb.append("-");
+
+        if (count != 0)
+            sb.append(offset + count - 1);
+
+        conn.setRequestProperty("Range", sb.toString());
+    }
+
     private void connectOrThrow(HttpURLConnection conn) throws IOException {
         conn.connect();
 
         int rc = conn.getResponseCode();
 
-        if (rc != HttpURLConnection.HTTP_OK)
-            throw new IOException("HTTP server failed to answer request.");
+        if (rc != HttpURLConnection.HTTP_OK && rc != HttpURLConnection.HTTP_PARTIAL)
+            throw new IOException("HTTP server responded with error: " + rc);
     }
 }
