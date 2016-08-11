@@ -100,7 +100,7 @@ public class DownloaderTest {
         // start out with random data, just to be sure
         fillWithRandomData(oneShotBuffer);
         fillWithRandomData(chunkBuffer);
-4
+
         // read in one shot
         nread = readIntoOffset(downloader.downloadRange(url, 0, downloadSize), oneShotBuffer, 0);
         assertEquals(downloadSize, nread);
