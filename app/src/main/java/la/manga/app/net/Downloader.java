@@ -13,29 +13,19 @@ public class Downloader {
     private static final int connectTimeout = 10 * 1000;
     private static final int readTimeout = 10 * 1000;
 
-    public Downloader() {
-    }
-
     public InputStream downloadWithOffset(URL url, int offset) throws IOException {
         return downloadRange(url, offset, 0);
     }
 
     public InputStream downloadRange(URL url, int offset, int count) throws IOException {
-        InputStream is = null;
+        HttpURLConnection conn = open(url);
 
-        try {
-            HttpURLConnection conn = open(url);
+        if (offset != 0 || count != 0)
+            setDownloadRange(conn, offset, count);
 
-            if (offset != 0 || count != 0)
-                setDownloadRange(conn, offset, count);
+        establishConnection(conn);
 
-            establishConnection(conn);
-
-            return conn.getInputStream();
-        } finally {
-            if (is != null)
-                is.close();
-        }
+        return conn.getInputStream();
     }
 
     public InputStream download(URL url) throws IOException {
