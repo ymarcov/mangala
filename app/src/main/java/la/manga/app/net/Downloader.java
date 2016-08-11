@@ -29,8 +29,8 @@ public class Downloader {
             if (offset != 0 || count != 0)
                 setDownloadRange(conn, offset, count);
 
-            connectOrThrow(conn);
-            
+            establishConnection(conn);
+
             return conn.getInputStream();
         } finally {
             if (is != null)
@@ -69,7 +69,7 @@ public class Downloader {
         conn.setRequestProperty("Range", sb.toString());
     }
 
-    private void connectOrThrow(HttpURLConnection conn) throws IOException {
+    private void establishConnection(HttpURLConnection conn) throws IOException {
         conn.connect();
 
         int rc = conn.getResponseCode();
