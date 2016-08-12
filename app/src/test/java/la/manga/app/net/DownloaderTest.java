@@ -10,17 +10,15 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.Random;
 
-import la.manga.app.net.Downloader;
-import la.manga.app.net.WebService;
-
 import static org.junit.Assert.*;
 
 /**
  * To work on unit tests, switch the Test Artifact in the Build Variants view.
  */
 public class DownloaderTest {
+    public static final String TEST_DOWNLOAD_FILE = "http://vhost2.hansenet.de/1_mb_file.bin";
+
     private Downloader downloader;
-    private final String TEST_DOWNLOAD_FILE = "http://vhost2.hansenet.de/1_mb_file.bin";
 
     @Before
     public void setUp() {
