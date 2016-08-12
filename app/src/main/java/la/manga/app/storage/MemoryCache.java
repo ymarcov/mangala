@@ -13,7 +13,10 @@ public class MemoryCache implements Cache {
     private HashMap<String, ByteArrayOutputStream> entries = new HashMap<>();
 
     @Override
-    public OutputStream createEntry(String name) {
+    public OutputStream createEntry(String name) throws IllegalArgumentException {
+        if (hasEntry(name))
+            throw new IllegalArgumentException("An entry by the specified name already exists in the cache.");
+
         return entries.put(name, new ByteArrayOutputStream());
     }
 
