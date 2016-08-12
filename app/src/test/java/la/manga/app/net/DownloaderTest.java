@@ -1,4 +1,4 @@
-package la.manga.app;
+package la.manga.app.net;
 
 import org.junit.Before;
 import org.junit.Test;
