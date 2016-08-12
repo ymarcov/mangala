@@ -17,7 +17,9 @@ public class MemoryCache implements Cache {
         if (hasEntry(name))
             throw new IllegalArgumentException("An entry by the specified name already exists in the cache.");
 
-        return entries.put(name, new ByteArrayOutputStream());
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        entries.put(name, os);
+        return os;
     }
 
     @Override
