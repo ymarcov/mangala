@@ -10,8 +10,44 @@ import java.net.URL;
  * Downloads stuff from the network.
  */
 public class Downloader {
-    private static final int connectTimeout = 10 * 1000;
-    private static final int readTimeout = 10 * 1000;
+    private int connectTimeout = 10 * 1000;
+    private int readTimeout = 10 * 1000;
+
+    /**
+     * Returns the timeout for connection attempts.
+     *
+     *  @return The timeout in milliseconds.
+     */
+    public int getConnectTimeout() {
+        return connectTimeout;
+    }
+
+    /**
+     * Sets the timeout for connection attempts.
+     *
+     * @param timeout The timeout in milliseconds.
+     */
+    public void setConnectTimeout(int timeout) {
+        connectTimeout = timeout;
+    }
+
+    /**
+     * Returns the timeout for read attempts.
+     *
+     *  @return The timeout in milliseconds.
+     */
+    public int getReadTimeout() {
+        return readTimeout;
+    }
+
+    /**
+     * Sets the timeout for read attempts.
+     *
+     * @param timeout The timeout in milliseconds.
+     */
+    public void setReadTimeout(int timeout) {
+        readTimeout = timeout;
+    }
 
     /**
      * Downloads the content of a URL starting at a specified offset.
