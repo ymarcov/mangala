@@ -13,10 +13,27 @@ public class Downloader {
     private static final int connectTimeout = 10 * 1000;
     private static final int readTimeout = 10 * 1000;
 
+    /**
+     * Downloads the content of a URL starting at a specified offset.
+     *
+     * @param url The URL to download.
+     * @param offset The beginning offset to start downloading from.
+     * @return An input stream of the downloaded content.
+     * @throws IOException
+     */
     public InputStream downloadWithOffset(URL url, int offset) throws IOException {
         return downloadRange(url, offset, 0);
     }
 
+    /**
+     * Downloads a byte range of the content of a URL.
+     *
+     * @param url The URL to download.
+     * @param offset The beginning offset to start downloading from.
+     * @param count The number of bytes to download.
+     * @return An input stream of the downloaded content.
+     * @throws IOException
+     */
     public InputStream downloadRange(URL url, int offset, int count) throws IOException {
         HttpURLConnection conn = open(url);
 
@@ -28,6 +45,13 @@ public class Downloader {
         return conn.getInputStream();
     }
 
+    /**
+     * Downloads the content of a URL.
+     *
+     * @param url The URL to download.
+     * @return An input stream of the downloaded content.
+     * @throws IOException
+     */
     public InputStream download(URL url) throws IOException {
         return downloadRange(url, 0, 0);
     }
