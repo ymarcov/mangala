@@ -2,6 +2,7 @@ package la.manga.app.storage;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 
 /**
  * Provides stream storage space.
@@ -15,6 +16,13 @@ public interface Cache {
      * @throws IllegalArgumentException Entry name already exists in the cache.
      */
     OutputStream createEntry(String name) throws IllegalArgumentException;
+
+    /**
+     * Gets the names of all entries in the cache.
+     *
+     * @return A list of names of existing cache entries.
+     */
+    List<String> getEntryNames();
 
     /**
      * Reads an existing cache entry.

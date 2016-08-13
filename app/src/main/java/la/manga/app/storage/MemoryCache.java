@@ -4,7 +4,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Implements an in-memory non-persistent cache.
@@ -20,6 +22,11 @@ public class MemoryCache implements Cache {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         entries.put(name, os);
         return os;
+    }
+
+    @Override
+    public List<String> getEntryNames() {
+        return new ArrayList<>(entries.keySet());
     }
 
     @Override
