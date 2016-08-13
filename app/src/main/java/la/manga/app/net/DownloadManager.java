@@ -2,21 +2,15 @@ package la.manga.app.net;
 
 import android.support.annotation.NonNull;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.URL;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -72,7 +66,7 @@ public class DownloadManager {
         private volatile boolean cancelled = false;
         private volatile Throwable exception = null;
         private volatile boolean completed = false;
-        private final ManualResetEvent event = new ManualResetEvent();
+        private final ManualResetEvent finishEvent = new ManualResetEvent();
         private volatile InputStream result;
 
         public Task(URL url, ProgressListener progressListener) {
@@ -121,7 +115,7 @@ public class DownloadManager {
                 tryClose(os);
 
                 // wakeup all waiting threads
-                event.signal();
+                finishEvent.signal();
             }
         }
 
@@ -179,15 +173,15 @@ public class DownloadManager {
 
         @Override
         public InputStream get() throws InterruptedException, ExecutionException {
+            finishEvent.waitForSignal();
             validateState();
-            event.waitForSignal();
             return result;
         }
 
         @Override
         public InputStream get(long l, @NonNull TimeUnit timeUnit) throws InterruptedException, ExecutionException, TimeoutException {
+            finishEvent.waitForSignal(timeUnit.toMillis(l));
             validateState();
-            event.waitForSignal(timeUnit.toMillis(l));
             return result;
         }
 
