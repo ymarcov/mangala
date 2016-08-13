@@ -88,4 +88,17 @@ public class ManualResetEventTest {
         assertThat(end - start, greaterThanOrEqualTo(expectedElapsed_ns));
         assertThat(end - start, lessThan(expectedElapsed_ns * 2));
     }
+
+    @Test
+    public void doesntWaitWithTimeoutIfAlreadySignalled() throws Exception {
+        mre.signal();
+
+        long start = System.nanoTime();
+
+        mre.waitForSignal(100);
+
+        long end = System.nanoTime();
+
+        assertThat(end - start, lessThan(TimeUnit.MILLISECONDS.toNanos(10L)));
+    }
 }

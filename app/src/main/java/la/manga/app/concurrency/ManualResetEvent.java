@@ -26,7 +26,8 @@ public class ManualResetEvent {
 
     public void waitForSignal(long millis) throws InterruptedException, TimeoutException {
         synchronized (syncObject) {
-            syncObject.wait(millis);
+            if (!set)
+                syncObject.wait(millis);
 
             if (!set)
                 throw new TimeoutException();
