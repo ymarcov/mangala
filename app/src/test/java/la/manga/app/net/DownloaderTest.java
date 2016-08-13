@@ -1,5 +1,6 @@
 package la.manga.app.net;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -16,13 +17,18 @@ import static org.junit.Assert.*;
  * To work on unit tests, switch the Test Artifact in the Build Variants view.
  */
 public class DownloaderTest {
-    public static final String TEST_DOWNLOAD_FILE = "http://vhost2.hansenet.de/1_mb_file.bin";
-
     private Downloader downloader;
+    private TestHttpServer server = new TestHttpServer();
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         downloader = new Downloader();
+        server.start();
+    }
+
+    @After
+    public void tearDown() {
+        server.stop();
     }
 
     @Test
@@ -40,8 +46,7 @@ public class DownloaderTest {
 
     @Test
     public void downloadBigFile() throws Exception {
-        URL url = new URL(TEST_DOWNLOAD_FILE);
-        final int fileSize = 0x100000;
+        URL url = new URL(TestHttpServer.TEST_FILE);
         int totalBytes = 0;
 
         InputStream is = downloader.download(url);
@@ -54,7 +59,7 @@ public class DownloaderTest {
             while ((nbytes = isr.read(buffer)) != -1)
                 totalBytes += nbytes;
 
-            assertEquals(fileSize, totalBytes);
+            assertEquals(TestHttpServer.TEST_FILE_SIZE, totalBytes);
         } finally {
             is.close();
         }
@@ -62,7 +67,7 @@ public class DownloaderTest {
 
     @Test
     public void downloadPartial() throws Exception {
-        URL url = new URL(TEST_DOWNLOAD_FILE);
+        URL url = new URL(TestHttpServer.TEST_FILE);
         final int offset = 200;
         final int count = 400;
         int totalBytes = 0;
@@ -85,7 +90,7 @@ public class DownloaderTest {
 
     @Test
     public void downloadRangeIsConsistent() throws Exception {
-        URL url = new URL(TEST_DOWNLOAD_FILE);
+        URL url = new URL(TestHttpServer.TEST_FILE);
         final int offset = 200;
         final int count = 400;
         final int downloadSize = 0x100000;
