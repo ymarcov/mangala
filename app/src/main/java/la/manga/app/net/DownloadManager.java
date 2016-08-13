@@ -179,23 +179,19 @@ public class DownloadManager {
 
         @Override
         public InputStream get() throws InterruptedException, ExecutionException {
-            if (cancelled)
-                throw new CancellationException();
-
-            if (exception != null) {
-                if (exception instanceof InterruptedException)
-                    throw (InterruptedException) exception;
-                else
-                    throw new ExecutionException(exception.getMessage(), exception);
-            }
-
+            validateState();
             event.waitForSignal();
-
             return result;
         }
 
         @Override
         public InputStream get(long l, @NonNull TimeUnit timeUnit) throws InterruptedException, ExecutionException, TimeoutException {
+            validateState();
+            event.waitForSignal(timeUnit.toMillis(l));
+            return result;
+        }
+
+        private void validateState() throws InterruptedException, ExecutionException {
             if (cancelled)
                 throw new CancellationException();
 
@@ -205,10 +201,6 @@ public class DownloadManager {
                 else
                     throw new ExecutionException(exception.getMessage(), exception);
             }
-
-            event.waitForSignal(timeUnit.toMillis(l));
-
-            return result;
         }
     }
 
