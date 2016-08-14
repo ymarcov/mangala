@@ -27,7 +27,6 @@ public class DownloadManagerTest {
     private URL url;
     private TestHttpServer server = new TestHttpServer();
 
-
     @Before
     public void setUp() throws Exception {
         cache = new MemoryCache();
@@ -65,82 +64,41 @@ public class DownloadManagerTest {
 
     @Test
     public void cancelsDownloadInTheMiddle() throws Exception {
-        final ManualResetEvent madeSomeProgress = new ManualResetEvent();
-        final ManualResetEvent requestedCancel = new ManualResetEvent();
+        final boolean[] cancelled = new boolean[]{false};
 
-        DownloadManager.Task task = dm.startDownload(url, new DownloadManager.ProgressListener() {
+        ControlledProgressScenario scenario = new ControlledProgressScenario() {
             @Override
-            public void onProgress(ProgressInfo progressInfo) {
-                madeSomeProgress.signal();
-
-                try {
-                    requestedCancel.waitForSignal();
-                } catch (InterruptedException _) {
-                    fail("Interrupted");
-                }
+            protected void onProgress() {
+                task.cancel(true);
             }
-        });
 
-        boolean cancelled = false;
+            @Override
+            protected void onCancelled() {
+                cancelled[0] = true;
+            }
+        };
 
-        try {
-            // wait for some progress to be made
-            madeSomeProgress.waitForSignal();
+        scenario.run();
 
-            // cancel task
-            task.cancel(true);
-
-            // allow task to enter next progress step and see cancellation
-            requestedCancel.signal();
-
-            // now we expect this to throw a cancellation exception
-            task.get();
-        } catch (CancellationException _) {
-            cancelled = true;
-        }
-
-        assertTrue(cancelled);
+        assertTrue(cancelled[0]);
     }
 
     @Test
     public void errorCausedByServerShutdown() throws Exception {
-        final ManualResetEvent madeSomeProgress = new ManualResetEvent();
-        final ManualResetEvent requestedShutdown = new ManualResetEvent();
+        final boolean[] aborted = new boolean[]{false};
 
         server.setFailAlways(true);
 
-        DownloadManager.Task task = dm.startDownload(url, new DownloadManager.ProgressListener() {
+        ControlledProgressScenario scenario = new ControlledProgressScenario() {
             @Override
-            public void onProgress(ProgressInfo progressInfo) {
-                madeSomeProgress.signal();
-
-                try {
-                    requestedShutdown.waitForSignal();
-                } catch (InterruptedException _) {
-                    fail("Interrupted");
-                }
+            protected void onError() {
+                aborted[0] = true;
             }
-        });
+        };
 
-        boolean raisedError = false;
+        scenario.run();
 
-        try {
-            // wait for some progress to be made
-            madeSomeProgress.waitForSignal();
-
-            // cancel task
-            server.stop();
-
-            // allow task to enter next progress step and see cancellation
-            requestedShutdown.signal();
-
-            // now we expect this to throw a cancellation exception
-            task.get();
-        } catch (ExecutionException _) {
-            raisedError = true;
-        }
-
-        assertTrue(raisedError);
+        assertTrue(aborted[0]);
     }
 
     /**
@@ -148,4 +106,43 @@ public class DownloadManagerTest {
      * 4. resume download
      * 5. restart download
      */
+
+    private abstract class ControlledProgressScenario {
+        private final ManualResetEvent madeSomeProgress = new ManualResetEvent();
+        private final ManualResetEvent continueEvent = new ManualResetEvent();
+        protected DownloadManager.Task task;
+
+        protected void onProgress() {}
+        protected void onCancelled() {}
+        protected void onError() {}
+
+        public void run() throws Exception {
+            try {
+                startTask();
+                madeSomeProgress.waitForSignal();
+                onProgress();
+                continueEvent.signal();
+                task.get();
+            } catch (ExecutionException _) {
+                onError();
+            } catch (CancellationException _) {
+                onCancelled();
+            }
+        }
+
+        private void startTask() {
+            task = dm.startDownload(url, new DownloadManager.ProgressListener() {
+                @Override
+                public void onProgress(ProgressInfo progressInfo) {
+                    madeSomeProgress.signal();
+
+                    try {
+                        continueEvent.waitForSignal();
+                    } catch (InterruptedException _) {
+                        fail("Interrupted");
+                    }
+                }
+            });
+        }
+    }
 }
