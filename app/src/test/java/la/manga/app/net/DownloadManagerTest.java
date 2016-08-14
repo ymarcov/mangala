@@ -23,15 +23,17 @@ import static org.junit.Assert.*;
 
 public class DownloadManagerTest {
     private DownloadManager dm;
-    private Cache cache;
+    private Cache taskCache;
+    private Cache dataCache;
     private URL url;
     private TestHttpServer server = new TestHttpServer();
 
     @Before
     public void setUp() throws Exception {
-        cache = new MemoryCache();
+        taskCache = new MemoryCache();
+        dataCache = new MemoryCache();
         Executor executor = new ThreadPoolExecutor(5, 5, 1, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(10));
-        dm = new DownloadManager(cache, executor);
+        dm = new DownloadManager(taskCache, dataCache, executor);
         url = new URL(TestHttpServer.TEST_FILE);
         server.start();
     }
@@ -49,7 +51,7 @@ public class DownloadManagerTest {
         for (int i = 0; i < 10; i++)
             tasks.add(dm.startDownload(url, new DownloadManager.ProgressListener() {
                 @Override
-                public void onProgress(ProgressInfo progressInfo) {
+                public void onProgress(DownloadManager.ProgressInfo progressInfo) {
                     downloadedBytes.put(progressInfo.task, progressInfo.downloadedBytes);
                 }
             }));
@@ -101,6 +103,51 @@ public class DownloadManagerTest {
         assertTrue(aborted[0]);
     }
 
+    @Test
+    public void persistsTaskToCache() throws Exception {
+        DownloadManager.Task t = dm.startDownload(url, null);
+        t.get();
+        assertTrue(taskCache.hasEntry(t.getCacheEntryName()));
+    }
+
+    @Test
+    public void restartsDownload() throws Exception {
+        final boolean[] cancelled = new boolean[]{false};
+
+        ControlledProgressScenario scenario = new ControlledProgressScenario() {
+            @Override
+            protected void onProgress() {
+                task.cancel(true);
+            }
+
+            @Override
+            protected void onCancelled() {
+                cancelled[0] = true;
+            }
+        };
+
+        DownloadManager.Task t = scenario.run();
+
+        assertTrue(cancelled[0]);
+
+        final boolean[] restarted = new boolean[]{false};
+
+        t = dm.restartDownload(t, new DownloadManager.ProgressListener() {
+            @Override
+            public void onProgress(DownloadManager.ProgressInfo progressInfo) {
+                if (progressInfo.state == DownloadManager.TaskState.PENDING
+                        && progressInfo.downloadedBytes == 0)
+                    restarted[0] = true;
+            }
+        });
+
+        t.get();
+
+        assertTrue(restarted[0]);
+        assertEquals(1, taskCache.getEntryNames().size());
+        assertEquals(1, dataCache.getEntryNames().size());
+    }
+
     /**
      * TODO
      * 4. resume download
@@ -116,7 +163,7 @@ public class DownloadManagerTest {
         protected void onCancelled() {}
         protected void onError() {}
 
-        public void run() throws Exception {
+        public DownloadManager.Task run() throws Exception {
             try {
                 startTask();
                 madeSomeProgress.waitForSignal();
@@ -128,12 +175,17 @@ public class DownloadManagerTest {
             } catch (CancellationException _) {
                 onCancelled();
             }
+
+            return task;
         }
 
         private void startTask() {
             task = dm.startDownload(url, new DownloadManager.ProgressListener() {
                 @Override
-                public void onProgress(ProgressInfo progressInfo) {
+                public void onProgress(DownloadManager.ProgressInfo progressInfo) {
+                    if (progressInfo.state == DownloadManager.TaskState.PENDING)
+                        return;
+
                     madeSomeProgress.signal();
 
                     try {
