@@ -47,7 +47,11 @@ public class DownloadManager {
      * @param url The URL to download.
      */
     public Task startDownload(URL url, ProgressListener progressListener) {
-        Task t = new Task(url, progressListener);
+        return startTask(new Task(url, progressListener));
+    }
+
+    private Task startTask(Task t) {
+        t.prepare();
         executor.execute(t);
         return t;
     }
@@ -68,16 +72,32 @@ public class DownloadManager {
         private volatile boolean completed = false;
         private final ManualResetEvent finishEvent = new ManualResetEvent();
         private volatile InputStream result;
+        private String cacheEntryName;
 
         public Task(URL url, ProgressListener progressListener) {
             this.url = url;
             this.progressListener = progressListener;
         }
 
+        /**
+         * Initialization after all constructors have been called,
+         * to enable virtual initialization overrides.
+         */
+        void prepare() {
+            this.cacheEntryName = generateCacheEntryName();
+        }
+
+        public URL getUrl() {
+            return url;
+        }
+
+        public String getCacheEntryName() {
+            return cacheEntryName;
+        }
+
         @Override
         public void run() {
             final Downloader downloader = new Downloader();
-            final String cacheEntryName = getCacheEntryName();
             InputStream is = null;
             OutputStream os = null;
             int downloadedBytes = 0;
@@ -119,8 +139,8 @@ public class DownloadManager {
             }
         }
 
-        protected String getCacheEntryName() {
-            return String.format("%s-%s", new File(url.getPath()).getName(), System.nanoTime());
+        protected String generateCacheEntryName() {
+            return String.format("%s-%s", System.nanoTime(), new File(url.getPath()).getName());
         }
 
         private void notifyProgress(int downloadedBytes, ProgressListener.State state) {
