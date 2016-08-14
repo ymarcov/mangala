@@ -63,6 +63,8 @@ public class DownloadManager {
      * <p/>
      * 1. The file cannot be downloaded, because of a failure
      * in creating a cache entry.
+     * 2. The download was aborted by the peer.
+     * 3. Lost connection.
      */
     public class Task implements RunnableFuture<InputStream> {
         private final URL url;
