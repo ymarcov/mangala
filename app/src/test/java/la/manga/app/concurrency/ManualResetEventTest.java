@@ -10,6 +10,8 @@ import static org.junit.Assert.*;
 import static org.hamcrest.Matchers.*;
 
 public class ManualResetEventTest {
+    private static final long timerTolerance_ns = TimeUnit.MILLISECONDS.toNanos(5);
+
     private ManualResetEvent mre;
 
     private Thread startThread(Runnable r) {
@@ -52,7 +54,7 @@ public class ManualResetEventTest {
         long end = System.nanoTime();
 
         assertTrue(timeoutOccurred);
-        assertThat(end - start, greaterThanOrEqualTo(expectedElapsed_ns));
+        assertThat(end - start + timerTolerance_ns, greaterThanOrEqualTo(expectedElapsed_ns));
     }
 
     @Test
