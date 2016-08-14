@@ -229,10 +229,10 @@ public class DownloadManager {
         }
 
         class ProgressInfo {
-            Task task;
-            URL url;
-            State state;
-            int downloadedBytes;
+            public Task task;
+            public URL url;
+            public State state;
+            public int downloadedBytes;
         }
 
         /**
