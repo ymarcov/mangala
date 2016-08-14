@@ -366,7 +366,7 @@ public class DownloadManager {
      * content download from scratch.
      */
     private class RestartedTask extends Task {
-        private final Task task;
+        private final String existingCacheEntryName;
 
         /**
          * Creates a new restarted task from an existing one.
@@ -375,22 +375,22 @@ public class DownloadManager {
          */
         public RestartedTask(Task task, ProgressListener progressListener) throws IllegalArgumentException {
             super(task.url, progressListener);
-            this.task = task;
 
             if (!task.isDone())
                 throw new IllegalArgumentException("Attempt to restart a running task.");
+
+            existingCacheEntryName = task.getCacheEntryName();
         }
 
         @Override
         protected OutputStream openDataCacheEntry() {
-            String cacheEntryName = getCacheEntryName();
-            dataCache.deleteEntry(cacheEntryName);
-            return dataCache.createEntry(cacheEntryName);
+            dataCache.deleteEntry(existingCacheEntryName);
+            return dataCache.createEntry(existingCacheEntryName);
         }
 
         @Override
         public String generateCacheEntryName() {
-            return task.getCacheEntryName();
+            return existingCacheEntryName;
         }
     }
 
