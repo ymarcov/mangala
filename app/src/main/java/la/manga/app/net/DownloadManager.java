@@ -96,7 +96,7 @@ public class DownloadManager {
     /**
      * A thread-safe method for setting the active state of a task.
      */
-    private synchronized void setActiveState(Task t, boolean active) {
+    private synchronized void setTaskActiveState(Task t, boolean active) {
         TaskId id = t.getId();
 
         if (active)
@@ -226,7 +226,7 @@ public class DownloadManager {
             InputStream is = null;
             OutputStream os = null;
 
-            setActiveState(this, true);
+            setTaskActiveState(this, true);
 
             try {
                 os = openDataCacheEntry();
@@ -265,7 +265,7 @@ public class DownloadManager {
                 tryClose(is);
                 tryClose(os);
 
-                setActiveState(this, false);
+                setTaskActiveState(this, false);
 
                 // wakeup all waiting threads
                 finishEvent.signal();
