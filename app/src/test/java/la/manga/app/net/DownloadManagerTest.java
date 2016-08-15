@@ -53,13 +53,13 @@ public class DownloadManagerTest {
     @Test
     public void downloadsMultipleItems() throws Exception {
         final List<DownloadManager.Task> tasks = new ArrayList<>();
-        final HashMap<DownloadManager.Task, Integer> downloadedBytes = new HashMap<>();
+        final HashMap<DownloadManager.TaskId, Integer> downloadedBytes = new HashMap<>();
 
         for (int i = 0; i < 10; i++)
             tasks.add(dm.startDownload(url, new DownloadManager.ProgressListener() {
                 @Override
                 public void onProgress(DownloadManager.ProgressInfo progressInfo) {
-                    downloadedBytes.put(progressInfo.task, progressInfo.downloadedBytes);
+                    downloadedBytes.put(progressInfo.taskId, progressInfo.downloadedBytes);
                 }
             }));
 
@@ -141,7 +141,7 @@ public class DownloadManagerTest {
 
         final boolean[] restarted = new boolean[]{false};
 
-        t = dm.restartDownload(t, new DownloadManager.ProgressListener() {
+        t = dm.restartDownload(t.getId(), new DownloadManager.ProgressListener() {
             @Override
             public void onProgress(DownloadManager.ProgressInfo progressInfo) {
                 if (progressInfo.state == DownloadManager.TaskState.STARTING

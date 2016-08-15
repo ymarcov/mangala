@@ -137,12 +137,14 @@ public class DownloadManager {
     /**
      * Restarts an existing download task.
      *
-     * @param downloadTask     The task to restart.
+     * @param taskId           The id of the task to restart.
      * @param progressListener A progress listener updated on task state changes.
      * @return An async task handle for the specified download.
      */
-    public Task restartDownload(Task downloadTask, ProgressListener progressListener) throws IOException {
-        return startTask(new RestartedTask(downloadTask, progressListener));
+    public Task restartDownload(TaskId taskId, ProgressListener progressListener) throws IOException {
+        InputStream is = taskCache.readEntry(taskId.getCacheEntryId());
+        ProgressInfo pi = ProgressInfo.deserialize(is);
+        return startTask(new RestartedTask(pi, progressListener));
     }
 
     private synchronized Task startTask(Task t) throws IOException {
@@ -342,18 +344,12 @@ public class DownloadManager {
          * restarting suspended or failed downloads.
          */
         private void persistState(ProgressInfo progressInfo) throws IOException {
-            ProgressInfo pi = new ProgressInfo();
-
-            pi.url = progressInfo.url;
-            pi.state = progressInfo.state;
-            pi.downloadedBytes = progressInfo.downloadedBytes;
-
             OutputStream os = null;
 
             try {
                 taskCache.deleteEntry(cacheEntryId);
                 os = taskCache.createEntry(cacheEntryId);
-                ProgressInfo.serialize(pi, os);
+                ProgressInfo.serialize(progressInfo, os);
             } finally {
                 tryClose(os);
             }
@@ -362,7 +358,7 @@ public class DownloadManager {
         private ProgressInfo makeProgressInfo(int totalBytes, TaskState state) {
             ProgressInfo pi = new ProgressInfo();
 
-            pi.task = this;
+            pi.taskId = getId();
             pi.url = url;
             pi.downloadedBytes = totalBytes;
             pi.state = state;
@@ -485,13 +481,13 @@ public class DownloadManager {
          *
          * @throws IllegalArgumentException
          */
-        public RestartedTask(Task task, ProgressListener progressListener) throws IllegalArgumentException {
-            super(task.url, progressListener);
+        public RestartedTask(ProgressInfo pi, ProgressListener progressListener) throws IllegalArgumentException {
+            super(pi.url, progressListener);
 
-            if (!task.isDone())
+            if (isActive(pi.taskId))
                 throw new IllegalArgumentException("Attempt to restart a running task.");
 
-            existingCacheEntryId = task.getId().getCacheEntryId();
+            existingCacheEntryId = pi.taskId.getCacheEntryId();
         }
 
         @Override
@@ -524,8 +520,11 @@ public class DownloadManager {
         ERROR
     }
 
-    public class TaskId {
-        private final String cacheEntryId;
+    public static class TaskId implements Serializable {
+        private String cacheEntryId;
+
+        TaskId() {
+        }
 
         TaskId(String cacheEntryId) {
             this.cacheEntryId = cacheEntryId;
@@ -577,7 +576,7 @@ public class DownloadManager {
         } // package-private creation
 
         private int compatVersion = 1;
-        public transient Task task;
+        public TaskId taskId;
         public URL url;
         public TaskState state;
         public int downloadedBytes;
