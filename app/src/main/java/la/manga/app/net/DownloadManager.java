@@ -32,8 +32,8 @@ public class DownloadManager {
     private final Cache taskCache;
     private final Cache dataCache;
     private final Executor executor;
-    private volatile int chunkSize = 0x10000;
     private final Map<TaskId, Task> activeTasks = new HashMap<>();
+    private volatile int chunkSize = 0x10000;
 
     /**
      * Creates a new download manager.
