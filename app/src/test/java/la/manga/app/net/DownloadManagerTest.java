@@ -187,11 +187,6 @@ public class DownloadManagerTest {
         assertEquals(1, dataCache.getEntryNames().size());
     }
 
-    /**
-     * TODO
-     * 4. resume download
-     */
-
     private ControlledProgressScenario cancelledScenario(final boolean[] cancelledFlag) {
         return new ControlledProgressScenario() {
             @Override
