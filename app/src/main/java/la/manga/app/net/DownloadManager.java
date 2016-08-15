@@ -54,6 +54,7 @@ public class DownloadManager {
 
     /**
      * Gets the ids of the tasks associated with this manager.
+     *
      * @return A list of task ids.
      * @throws IOException
      */
@@ -68,6 +69,7 @@ public class DownloadManager {
 
     /**
      * Gets the state of the specified task.
+     *
      * @param id The id of the task whose state to get.
      * @return The current state of the task.
      * @throws IOException
@@ -81,6 +83,12 @@ public class DownloadManager {
         return pi.state;
     }
 
+    /**
+     * Gets whether the task specified by the task id is currently active.
+     *
+     * @param id The id of the task to check on.
+     * @return True if the task is active, false otherwise.
+     */
     public synchronized boolean isActive(TaskId id) {
         return activeTasks.containsKey(id);
     }
@@ -90,9 +98,8 @@ public class DownloadManager {
 
         if (active)
             activeTasks.put(id, t);
-        else
-            if (activeTasks.containsKey(id))
-                activeTasks.remove(id);
+        else if (activeTasks.containsKey(id))
+            activeTasks.remove(id);
     }
 
     /**
