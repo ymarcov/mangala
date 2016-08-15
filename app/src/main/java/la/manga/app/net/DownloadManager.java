@@ -148,6 +148,36 @@ public class DownloadManager {
     }
 
     /**
+     * Clears tasks that ended with an error state.
+     * This doesn't clear cancelled tasks.
+     *
+     * @throws IOException
+     */
+    public void clearFailedTasks() throws IOException {
+        clearTasksByState(TaskState.ERROR);
+    }
+
+    /**
+     * Clears tasks that had been cancelled.
+     * This doesn't clear failed tasks.
+     *
+     * @throws IOException
+     */
+    public void clearCancelledTasks() throws IOException {
+        clearTasksByState(TaskState.CANCELLED);
+    }
+
+    private synchronized void clearTasksByState(TaskState state) throws IOException {
+        for (TaskId id : getTaskIds()) {
+            if (getTaskState(id) == state) {
+                String cacheEntryId = id.getCacheEntryId();
+                taskCache.deleteEntry(cacheEntryId);
+                dataCache.deleteEntry(cacheEntryId);
+            }
+        }
+    }
+
+    /**
      * Starts a new download.
      *
      * @param url              The URL to download.

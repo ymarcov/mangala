@@ -226,6 +226,33 @@ public class DownloadManagerTest {
         assertEquals(1, caches.data.getEntryNames().size());
     }
 
+    @Test
+    public void clearsFailedAndCancelledTasks() throws IOException {
+        FabricatedCaches caches = new FabricatedCaches();
+
+        // these should be cleared
+        caches.fabricateTask(DownloadManager.TaskState.ERROR);
+        caches.fabricateTask(DownloadManager.TaskState.ERROR);
+
+        // these shouldn't be cleared
+        caches.fabricateTask(DownloadManager.TaskState.IN_PROGRESS);
+        caches.fabricateTask(DownloadManager.TaskState.STARTING);
+        caches.fabricateTask(DownloadManager.TaskState.CANCELLED);
+        caches.fabricateTask(DownloadManager.TaskState.PENDING);
+
+        DownloadManager dm = caches.createDownloadManager();
+
+        assertEquals(6, dm.getTaskIds().size());
+
+        dm.clearFailedTasks();
+
+        assertEquals(4, dm.getTaskIds().size());
+
+        dm.clearCancelledTasks();
+
+        assertEquals(3, dm.getTaskIds().size());
+    }
+
     private class FabricatedCaches {
         public final Cache tasks = new MemoryCache();
         public final Cache data = new MemoryCache();
