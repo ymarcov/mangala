@@ -93,6 +93,9 @@ public class DownloadManager {
         return activeTasks.containsKey(id);
     }
 
+    /**
+     * A thread-safe method for setting the active state of a task.
+     */
     private synchronized void setActiveState(Task t, boolean active) {
         TaskId id = t.getId();
 
