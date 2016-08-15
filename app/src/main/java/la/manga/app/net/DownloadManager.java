@@ -15,9 +15,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -153,8 +156,8 @@ public class DownloadManager {
      *
      * @throws IOException
      */
-    public void clearFailedTasks() throws IOException {
-        clearTasksByState(TaskState.ERROR);
+    public Future<Void> clearFailedTasks() throws IOException {
+        return clearTasksByState(TaskState.ERROR);
     }
 
     /**
@@ -163,18 +166,29 @@ public class DownloadManager {
      *
      * @throws IOException
      */
-    public void clearCancelledTasks() throws IOException {
-        clearTasksByState(TaskState.CANCELLED);
+    public Future<Void> clearCancelledTasks() throws IOException {
+        return clearTasksByState(TaskState.CANCELLED);
     }
 
-    private synchronized void clearTasksByState(TaskState state) throws IOException {
-        for (TaskId id : getTaskIds()) {
-            if (getTaskState(id) == state) {
-                String cacheEntryId = id.getCacheEntryId();
-                taskCache.deleteEntry(cacheEntryId);
-                dataCache.deleteEntry(cacheEntryId);
+    private synchronized FutureTask<Void> clearTasksByState(final TaskState state) throws IOException {
+        FutureTask<Void> task = new FutureTask<>(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                for (TaskId id : getTaskIds()) {
+                    if (getTaskState(id) == state) {
+                        String cacheEntryId = id.getCacheEntryId();
+                        taskCache.deleteEntry(cacheEntryId);
+                        dataCache.deleteEntry(cacheEntryId);
+                    }
+                }
+
+                return null;
             }
-        }
+        });
+
+        executor.execute(task);
+
+        return task;
     }
 
     /**

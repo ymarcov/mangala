@@ -227,7 +227,7 @@ public class DownloadManagerTest {
     }
 
     @Test
-    public void clearsFailedAndCancelledTasks() throws IOException {
+    public void clearsFailedAndCancelledTasks() throws Exception {
         FabricatedCaches caches = new FabricatedCaches();
 
         // these should be cleared
@@ -244,11 +244,11 @@ public class DownloadManagerTest {
 
         assertEquals(6, dm.getTaskIds().size());
 
-        dm.clearFailedTasks();
+        dm.clearFailedTasks().get();
 
         assertEquals(4, dm.getTaskIds().size());
 
-        dm.clearCancelledTasks();
+        dm.clearCancelledTasks().get();
 
         assertEquals(3, dm.getTaskIds().size());
     }
