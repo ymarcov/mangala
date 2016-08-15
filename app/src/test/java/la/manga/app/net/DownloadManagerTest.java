@@ -13,6 +13,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -193,29 +194,13 @@ public class DownloadManagerTest {
 
     @Test
     public void resumesInactiveCachedTask() throws Exception {
+        FabricatedCaches caches = new FabricatedCaches();
+        DownloadManager.ProgressInfo pi = caches.fabricateTask(DownloadManager.TaskState.IN_PROGRESS);
+
         final boolean[] resumed = new boolean[]{false};
-        final int previouslyDownloadedBytes = 0x10000;
+        final int previouslyDownloadedBytes = pi.downloadedBytes;
 
-        // set up our fake cached task
-        DownloadManager.ProgressInfo pi = new DownloadManager.ProgressInfo();
-
-        pi.taskId = new DownloadManager.TaskId("TestID");
-        pi.url = url;
-        pi.downloadedBytes = previouslyDownloadedBytes;
-        pi.state = DownloadManager.TaskState.IN_PROGRESS;
-
-        // create a new download manager with fabricated caches
-        Cache taskCache = new MemoryCache();
-        Cache dataCache = new MemoryCache();
-
-        DownloadManager dm = new DownloadManager(taskCache, dataCache, executor);
-
-        // ensure we have the entries in the cache, as expected
-        OutputStream taskStream = taskCache.createEntry(pi.taskId.getCacheEntryId());
-        DownloadManager.ProgressInfo.serialize(pi, taskStream);
-
-        // we don't really care what goes in here, just make sure entry exists
-        dataCache.createEntry(pi.taskId.getCacheEntryId()).close();
+        DownloadManager dm = caches.createDownloadManager();
 
         // we expect the state at this point to be pending, i.e. inactive
         assertEquals(DownloadManager.TaskState.PENDING, dm.getTaskState(pi.taskId));
@@ -237,8 +222,40 @@ public class DownloadManagerTest {
 
         assertTrue(resumed[0]);
         assertEquals(TestHttpServer.TEST_FILE_SIZE, task.getDownloadedBytes());
-        assertEquals(1, taskCache.getEntryNames().size());
-        assertEquals(1, dataCache.getEntryNames().size());
+        assertEquals(1, caches.taskCache.getEntryNames().size());
+        assertEquals(1, caches.dataCache.getEntryNames().size());
+    }
+
+    private class FabricatedCaches {
+        public final Cache taskCache = new MemoryCache();
+        public final Cache dataCache = new MemoryCache();
+
+        public void fabricateTask(DownloadManager.ProgressInfo pi) throws IOException {
+            OutputStream os = taskCache.createEntry(pi.taskId.getCacheEntryId());
+            try {
+                DownloadManager.ProgressInfo.serialize(pi, os);
+            } finally {
+                os.close();
+            }
+            dataCache.createEntry(pi.taskId.getCacheEntryId()).close();
+        }
+
+        public DownloadManager.ProgressInfo fabricateTask(DownloadManager.TaskState state) throws IOException {
+            DownloadManager.ProgressInfo pi = new DownloadManager.ProgressInfo();
+
+            pi.taskId = new DownloadManager.TaskId(String.valueOf(System.nanoTime()));
+            pi.url = url;
+            pi.state = state;
+            pi.downloadedBytes = new Random().nextInt(TestHttpServer.TEST_FILE_SIZE);
+
+            fabricateTask(pi);
+
+            return pi;
+        }
+
+        public DownloadManager createDownloadManager() {
+            return new DownloadManager(taskCache, dataCache, executor);
+        }
     }
 
     private ControlledProgressScenario cancelledScenario(final boolean[] cancelledFlag) {
