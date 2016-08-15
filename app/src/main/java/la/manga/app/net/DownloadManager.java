@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -404,7 +405,10 @@ public class DownloadManager {
          * of resuming suspended downloads or restarting on error.
          */
         protected String generateCacheEntryId() {
-            return String.format("%s-%s", System.nanoTime(), new File(url.getPath()).getName());
+            long now = System.nanoTime();
+            int token = new Random(now).nextInt();
+            String filename = new File(url.getPath()).getName();
+            return String.format("%s.%s-%s", now, token, filename);
         }
 
         /**
