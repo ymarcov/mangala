@@ -15,7 +15,7 @@ public class MemoryCache implements Cache {
     private HashMap<String, ByteArrayOutputStream> entries = new HashMap<>();
 
     @Override
-    public OutputStream createEntry(String name) throws IllegalArgumentException {
+    public synchronized OutputStream createEntry(String name) throws IllegalArgumentException {
         if (hasEntry(name))
             throw new IllegalArgumentException("An entry by the specified name already exists in the cache.");
 
@@ -25,12 +25,12 @@ public class MemoryCache implements Cache {
     }
 
     @Override
-    public List<String> getEntryNames() {
+    public synchronized List<String> getEntryNames() {
         return new ArrayList<>(entries.keySet());
     }
 
     @Override
-    public InputStream readEntry(String name) {
+    public synchronized InputStream readEntry(String name) {
         ByteArrayOutputStream os = entries.get(name);
 
         if (os == null)
@@ -42,17 +42,17 @@ public class MemoryCache implements Cache {
     }
 
     @Override
-    public OutputStream appendToEntry(String name) {
+    public synchronized OutputStream appendToEntry(String name) {
         return entries.get(name);
     }
 
     @Override
-    public void deleteEntry(String name) {
+    public synchronized void deleteEntry(String name) {
         entries.remove(name);
     }
 
     @Override
-    public boolean hasEntry(String name) {
+    public synchronized boolean hasEntry(String name) {
         return entries.containsKey(name);
     }
 }
