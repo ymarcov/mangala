@@ -76,17 +76,7 @@ public class DownloadManagerTest {
     public void cancelsDownloadInTheMiddle() throws Exception {
         final boolean[] cancelled = new boolean[]{false};
 
-        ControlledProgressScenario scenario = new ControlledProgressScenario() {
-            @Override
-            protected void onProgress() {
-                task.cancel(true);
-            }
-
-            @Override
-            protected void onCancelled() {
-                cancelled[0] = true;
-            }
-        };
+        ControlledProgressScenario scenario = cancelledScenario(cancelled);
 
         DownloadManager.Task task = scenario.run();
 
@@ -122,22 +112,7 @@ public class DownloadManagerTest {
     @Test
     public void restartsDownload() throws Exception {
         final boolean[] cancelled = new boolean[]{false};
-
-        ControlledProgressScenario scenario = new ControlledProgressScenario() {
-            @Override
-            protected void onProgress() {
-                task.cancel(true);
-            }
-
-            @Override
-            protected void onCancelled() {
-                cancelled[0] = true;
-            }
-        };
-
-        DownloadManager.Task t = scenario.run();
-
-        assertTrue(cancelled[0]);
+        DownloadManager.Task t = cancelledScenario(cancelled).run();
 
         final boolean[] restarted = new boolean[]{false};
 
