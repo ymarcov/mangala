@@ -145,8 +145,9 @@ public class DownloadManagerTest {
             @Override
             public void onProgress(DownloadManager.ProgressInfo progressInfo) {
                 if (progressInfo.state == DownloadManager.TaskState.STARTING
-                        && progressInfo.downloadedBytes == 0)
+                        && progressInfo.downloadedBytes == 0) {
                     restarted[0] = true;
+                }
             }
         });
 
