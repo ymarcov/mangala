@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -162,6 +161,9 @@ public class DownloadManager {
      * @param taskId The id of the task whose cache data to delete.
      */
     public synchronized void deleteTaskFromCache(TaskId taskId) {
+        if (isActive(taskId))
+            throw new IllegalArgumentException("Attempt to delete a running task.");
+
         taskCache.deleteEntry(taskId.getCacheEntryId());
         dataCache.deleteEntry(taskId.getCacheEntryId());
     }
