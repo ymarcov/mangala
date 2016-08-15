@@ -118,6 +118,10 @@ public class DownloadManager {
 
         InputStream is = taskCache.readEntry(id.getCacheEntryId());
         ProgressInfo pi = ProgressInfo.deserialize(is);
+
+        if (pi.state == TaskState.IN_PROGRESS || pi.state == TaskState.STARTING)
+            pi.state = TaskState.PENDING; // start as inactive
+
         return pi.state;
     }
 

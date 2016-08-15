@@ -8,6 +8,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,8 +24,10 @@ import la.manga.app.concurrency.ManualResetEvent;
 import la.manga.app.storage.Cache;
 import la.manga.app.storage.MemoryCache;
 
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -34,12 +37,13 @@ public class DownloadManagerTest {
     private Cache dataCache;
     private URL url;
     private TestHttpServer server = new TestHttpServer();
+    private Executor executor;
 
     @Before
     public void setUp() throws Exception {
         taskCache = new MemoryCache();
         dataCache = new MemoryCache();
-        Executor executor = new ThreadPoolExecutor(5, 5, 1, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(10));
+        executor = new ThreadPoolExecutor(5, 5, 1, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(10));
         dm = new DownloadManager(taskCache, dataCache, executor);
         url = new URL(TestHttpServer.TEST_FILE);
         server.start();
@@ -183,6 +187,56 @@ public class DownloadManagerTest {
 
         assertTrue(resumed[0]);
         assertEquals(TestHttpServer.TEST_FILE_SIZE, t.getDownloadedBytes());
+        assertEquals(1, taskCache.getEntryNames().size());
+        assertEquals(1, dataCache.getEntryNames().size());
+    }
+
+    @Test
+    public void resumesInactiveCachedTask() throws Exception {
+        final boolean[] resumed = new boolean[]{false};
+        final int previouslyDownloadedBytes = 0x10000;
+
+        // set up our fake cached task
+        DownloadManager.ProgressInfo pi = new DownloadManager.ProgressInfo();
+
+        pi.taskId = new DownloadManager.TaskId("TestID");
+        pi.url = url;
+        pi.downloadedBytes = previouslyDownloadedBytes;
+        pi.state = DownloadManager.TaskState.IN_PROGRESS;
+
+        // create a new download manager with fabricated caches
+        Cache taskCache = new MemoryCache();
+        Cache dataCache = new MemoryCache();
+
+        DownloadManager dm = new DownloadManager(taskCache, dataCache, executor);
+
+        // ensure we have the entries in the cache, as expected
+        OutputStream taskStream = taskCache.createEntry(pi.taskId.getCacheEntryId());
+        DownloadManager.ProgressInfo.serialize(pi, taskStream);
+
+        // we don't really care what goes in here, just make sure entry exists
+        dataCache.createEntry(pi.taskId.getCacheEntryId()).close();
+
+        // we expect the state at this point to be pending, i.e. inactive
+        assertEquals(DownloadManager.TaskState.PENDING, dm.getTaskState(pi.taskId));
+
+        // resume the task and see that it downloads everything correctly
+        DownloadManager.Task task = dm.resumeDownload(pi.taskId, new DownloadManager.ProgressListener() {
+            @Override
+            public void onProgress(DownloadManager.ProgressInfo progressInfo) {
+                if (progressInfo.state == DownloadManager.TaskState.STARTING
+                        && progressInfo.downloadedBytes == previouslyDownloadedBytes) {
+                    resumed[0] = true;
+                } else {
+                    assertThat(progressInfo.downloadedBytes, greaterThan(previouslyDownloadedBytes));
+                }
+            }
+        });
+
+        task.get();
+
+        assertTrue(resumed[0]);
+        assertEquals(TestHttpServer.TEST_FILE_SIZE, task.getDownloadedBytes());
         assertEquals(1, taskCache.getEntryNames().size());
         assertEquals(1, dataCache.getEntryNames().size());
     }
