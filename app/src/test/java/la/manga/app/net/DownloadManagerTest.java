@@ -253,6 +253,21 @@ public class DownloadManagerTest {
         assertEquals(3, dm.getTaskIds().size());
     }
 
+    @Test
+    public void deletesTaskFromCache() throws Exception {
+        DownloadManager.Task task = dm.startDownload(url, null);
+
+        task.get();
+
+        assertEquals(1, taskCache.getEntryNames().size());
+        assertEquals(1, dataCache.getEntryNames().size());
+
+        dm.deleteTaskFromCache(task.getId());
+
+        assertEquals(0, taskCache.getEntryNames().size());
+        assertEquals(0, dataCache.getEntryNames().size());
+    }
+
     private class FabricatedCaches {
         public final Cache tasks = new MemoryCache();
         public final Cache data = new MemoryCache();

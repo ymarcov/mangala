@@ -154,6 +154,19 @@ public class DownloadManager {
     }
 
     /**
+     * Deletes the cached data associated with a task.
+     * Can be used to free up space after a task has
+     * already been downloaded and its input stream
+     * has been read and utilized, and is no longer needed.
+     *
+     * @param taskId The id of the task whose cache data to delete.
+     */
+    public synchronized void deleteTaskFromCache(TaskId taskId) {
+        taskCache.deleteEntry(taskId.getCacheEntryId());
+        dataCache.deleteEntry(taskId.getCacheEntryId());
+    }
+
+    /**
      * Clears tasks that ended with an error state.
      * This doesn't clear cancelled tasks.
      *
@@ -417,7 +430,7 @@ public class DownloadManager {
          * of resuming suspended downloads or restarting on error.
          */
         protected String generateCacheEntryId() {
-            long now = System.currentTimeMillis();;
+            long now = System.currentTimeMillis();
             int token = nextIdToken.incrementAndGet();
             String filename = new File(url.getPath()).getName();
             return String.format("%s.%s-%s", now, token, filename);
