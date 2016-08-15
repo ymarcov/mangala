@@ -164,7 +164,6 @@ public class DownloadManagerTest {
     /**
      * TODO
      * 4. resume download
-     * 5. restart download
      */
 
     private ControlledProgressScenario cancelledScenario(final boolean[] cancelledFlag) {
