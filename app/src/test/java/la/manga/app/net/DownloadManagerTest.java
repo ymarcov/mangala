@@ -222,22 +222,22 @@ public class DownloadManagerTest {
 
         assertTrue(resumed[0]);
         assertEquals(TestHttpServer.TEST_FILE_SIZE, task.getDownloadedBytes());
-        assertEquals(1, caches.taskCache.getEntryNames().size());
-        assertEquals(1, caches.dataCache.getEntryNames().size());
+        assertEquals(1, caches.tasks.getEntryNames().size());
+        assertEquals(1, caches.data.getEntryNames().size());
     }
 
     private class FabricatedCaches {
-        public final Cache taskCache = new MemoryCache();
-        public final Cache dataCache = new MemoryCache();
+        public final Cache tasks = new MemoryCache();
+        public final Cache data = new MemoryCache();
 
         public void fabricateTask(DownloadManager.ProgressInfo pi) throws IOException {
-            OutputStream os = taskCache.createEntry(pi.taskId.getCacheEntryId());
+            OutputStream os = tasks.createEntry(pi.taskId.getCacheEntryId());
             try {
                 DownloadManager.ProgressInfo.serialize(pi, os);
             } finally {
                 os.close();
             }
-            dataCache.createEntry(pi.taskId.getCacheEntryId()).close();
+            data.createEntry(pi.taskId.getCacheEntryId()).close();
         }
 
         public DownloadManager.ProgressInfo fabricateTask(DownloadManager.TaskState state) throws IOException {
@@ -254,7 +254,7 @@ public class DownloadManagerTest {
         }
 
         public DownloadManager createDownloadManager() {
-            return new DownloadManager(taskCache, dataCache, executor);
+            return new DownloadManager(tasks, data, executor);
         }
     }
 
