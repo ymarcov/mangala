@@ -32,19 +32,6 @@ public class DownloaderTest {
     }
 
     @Test
-    public void downloadsIndexHtml() throws Exception {
-        URL url = new URL(WebService.INDEX_URL);
-        InputStream is = downloader.download(url);
-
-        try {
-            String line = readLine(is);
-            assertEquals("<!DOCTYPE html>", line);
-        } finally {
-            is.close();
-        }
-    }
-
-    @Test
     public void downloadBigFile() throws Exception {
         URL url = new URL(TestHttpServer.TEST_FILE);
         int totalBytes = 0;
