@@ -161,6 +161,32 @@ public class DownloadManagerTest {
         assertEquals(1, dataCache.getEntryNames().size());
     }
 
+    @Test
+    public void resumesDownload() throws Exception {
+        final boolean[] cancelled = new boolean[]{false};
+        DownloadManager.Task t = cancelledScenario(cancelled).run();
+
+        final boolean[] resumed = new boolean[]{false};
+        final int previouslyDownloadedBytes = t.getDownloadedBytes();
+
+        t = dm.resumeDownload(t.getId(), new DownloadManager.ProgressListener() {
+            @Override
+            public void onProgress(DownloadManager.ProgressInfo progressInfo) {
+                if (progressInfo.state == DownloadManager.TaskState.STARTING
+                        && progressInfo.downloadedBytes == previouslyDownloadedBytes) {
+                    resumed[0] = true;
+                }
+            }
+        });
+
+        t.get();
+
+        assertTrue(resumed[0]);
+        assertEquals(TestHttpServer.TEST_FILE_SIZE, t.getDownloadedBytes());
+        assertEquals(1, taskCache.getEntryNames().size());
+        assertEquals(1, dataCache.getEntryNames().size());
+    }
+
     /**
      * TODO
      * 4. resume download

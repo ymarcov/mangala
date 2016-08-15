@@ -147,6 +147,12 @@ public class DownloadManager {
         return startTask(new RestartedTask(pi, progressListener));
     }
 
+    public Task resumeDownload(TaskId taskId, ProgressListener progressListener) throws IOException {
+        InputStream is = taskCache.readEntry(taskId.getCacheEntryId());
+        ProgressInfo pi = ProgressInfo.deserialize(is);
+        return startTask(new ResumedTask(pi, progressListener));
+    }
+
     private synchronized Task startTask(Task t) throws IOException {
         t.prepare();
         executor.execute(t);
@@ -242,7 +248,6 @@ public class DownloadManager {
          */
         @Override
         public void run() {
-            final Downloader downloader = new Downloader();
             InputStream is = null;
             OutputStream os = null;
 
@@ -250,7 +255,7 @@ public class DownloadManager {
 
             try {
                 os = openDataCacheEntry();
-                is = downloader.download(url);
+                is = downloadUrl();
                 byte[] buffer = new byte[chunkSize];
                 int nbytes;
 
@@ -304,6 +309,19 @@ public class DownloadManager {
         }
 
         /**
+         * Starts the download process.
+         * Can be used by subclasses to start downloading
+         * from a specific offset in the file, etc.
+         *
+         * @return An input stream of downloaded bytes.
+         * @throws IOException
+         */
+        protected InputStream downloadUrl() throws IOException {
+            final Downloader downloader = new Downloader();
+            return downloader.download(url);
+        }
+
+        /**
          * Called when the task needs an output stream to write to.
          * Can be used by subclasses to provide existing entries,
          * for resuming suspended downloads or restarting on error.
@@ -330,7 +348,7 @@ public class DownloadManager {
          * and possibly resumed from its most recent state.
          */
         private void onStateChanged(TaskState state) throws IOException {
-            ProgressInfo progressInfo = makeProgressInfo(downloadedBytes, state);
+            ProgressInfo progressInfo = makeProgressInfo(getDownloadedBytes(), state);
 
             persistState(progressInfo);
 
@@ -499,6 +517,53 @@ public class DownloadManager {
         @Override
         public String generateCacheEntryId() {
             return existingCacheEntryId;
+        }
+    }
+
+    /**
+     * A task which uses the same cache files as
+     * the one it continues, and resumes the download
+     * from its last known stage.
+     */
+    private class ResumedTask extends Task {
+        private final String existingCacheEntryId;
+        private final int downloadedBytes;
+
+        /**
+         * Creates a new resumed task from an existing one.
+         * Throws an exception if the specified task is currently running.
+         *
+         * @throws IllegalArgumentException
+         */
+        public ResumedTask(ProgressInfo pi, ProgressListener progressListener) throws IllegalArgumentException {
+            super(pi.url, progressListener);
+
+            if (isActive(pi.taskId))
+                throw new IllegalArgumentException("Attempt to resume a running task.");
+
+            existingCacheEntryId = pi.taskId.getCacheEntryId();
+            downloadedBytes = pi.downloadedBytes;
+        }
+
+        @Override
+        protected OutputStream openDataCacheEntry() {
+            return dataCache.appendToEntry(existingCacheEntryId);
+        }
+
+        @Override
+        public String generateCacheEntryId() {
+            return existingCacheEntryId;
+        }
+
+        @Override
+        protected InputStream downloadUrl() throws IOException {
+            final Downloader downloader = new Downloader();
+            return downloader.downloadWithOffset(getUrl(), downloadedBytes);
+        }
+
+        @Override
+        public int getDownloadedBytes() {
+            return super.getDownloadedBytes() + downloadedBytes;
         }
     }
 
