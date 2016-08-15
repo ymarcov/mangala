@@ -53,6 +53,24 @@ public class DownloadManager {
     }
 
     /**
+     * Gets the buffer size for discretely downloaded chunks of data.
+     *
+     * @return The size of the buffer in bytes.
+     */
+    public int getChunkSize() {
+        return chunkSize;
+    }
+
+    /**
+     * Sets the buffer size for discretely downloaded chunks of data.
+     *
+     * @param chunkSize The size of the buffer in bytes.
+     */
+    public void setChunkSize(int chunkSize) {
+        this.chunkSize = chunkSize;
+    }
+
+    /**
      * Gets the ids of the tasks associated with this manager.
      *
      * @return A list of task ids.
