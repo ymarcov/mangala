@@ -37,6 +37,7 @@ public class DownloadManager {
     private final Cache dataCache;
     private final Executor executor;
     private final Map<TaskId, Task> activeTasks = new HashMap<>();
+    private final Random idTokenGenerator = new Random(System.nanoTime());
     private volatile Downloader downloader = new Downloader();
     private volatile int chunkSize = 0x10000;
 
@@ -416,7 +417,7 @@ public class DownloadManager {
          */
         protected String generateCacheEntryId() {
             long now = System.nanoTime();
-            int token = new Random(now).nextInt();
+            int token = idTokenGenerator.nextInt();
             String filename = new File(url.getPath()).getName();
             return String.format("%s.%s-%s", now, token, filename);
         }
