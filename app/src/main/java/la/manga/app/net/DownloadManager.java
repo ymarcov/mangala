@@ -6,10 +6,15 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -28,17 +33,18 @@ public class DownloadManager {
     private final Cache dataCache;
     private final Executor executor;
     private volatile int chunkSize = 0x10000;
+    private final Map<TaskId, Task> activeTasks = new HashMap<>();
 
     /**
      * Creates a new download manager.
      *
-     * @param taskCache  The cache in which task state will be saved.
-     * @param dataCache  The cache in which downloaded data will be saved.
-     * @param executor   The executor for running download tasks.
-     *                   This executor will not be owned by the manager,
-     *                   and therefore shutdown() has to be called
-     *                   externally. It has to remain alive for the
-     *                   lifetime of this manager.
+     * @param taskCache The cache in which task state will be saved.
+     * @param dataCache The cache in which downloaded data will be saved.
+     * @param executor  The executor for running download tasks.
+     *                  This executor will not be owned by the manager,
+     *                  and therefore shutdown() has to be called
+     *                  externally. It has to remain alive for the
+     *                  lifetime of this manager.
      */
     public DownloadManager(Cache taskCache, Cache dataCache, Executor executor) {
         this.taskCache = taskCache;
@@ -47,27 +53,57 @@ public class DownloadManager {
     }
 
     /**
+     * Gets the ids of the tasks associated with this manager.
+     * @return A list of task ids.
+     * @throws IOException
+     */
+    public synchronized List<TaskId> getTaskIds() throws IOException {
+        List<TaskId> result = new ArrayList<>();
+
+        for (String name : taskCache.getEntryNames())
+            result.add(new TaskId(name));
+
+        return result;
+    }
+
+    /**
+     * Gets the state of the specified task.
+     * @param id The id of the task whose state to get.
+     * @return The current state of the task.
+     * @throws IOException
+     */
+    public synchronized TaskState getTaskState(TaskId id) throws IOException {
+        if (activeTasks.containsKey(id))
+            return activeTasks.get(id).getState();
+
+        InputStream is = taskCache.readEntry(id.getCacheEntryId());
+        ProgressInfo pi = ProgressInfo.deserialize(is);
+        return pi.state;
+    }
+
+    /**
      * Starts a new download.
      *
-     * @param url The URL to download.
+     * @param url              The URL to download.
      * @param progressListener A progress listener updated on task state changes.
      * @return An async task handle for the specified download.
      */
-    public Task startDownload(URL url, ProgressListener progressListener) {
+    public Task startDownload(URL url, ProgressListener progressListener) throws IOException {
         return startTask(new Task(url, progressListener));
     }
 
     /**
      * Restarts an existing download task.
-     * @param downloadTask The task to restart.
+     *
+     * @param downloadTask     The task to restart.
      * @param progressListener A progress listener updated on task state changes.
      * @return An async task handle for the specified download.
      */
-    public Task restartDownload(Task downloadTask, ProgressListener progressListener) {
+    public Task restartDownload(Task downloadTask, ProgressListener progressListener) throws IOException {
         return startTask(new RestartedTask(downloadTask, progressListener));
     }
 
-    private Task startTask(Task t) {
+    private synchronized Task startTask(Task t) throws IOException {
         t.prepare();
         executor.execute(t);
         return t;
@@ -98,17 +134,27 @@ public class DownloadManager {
         /**
          * The stream of downloaded bytes to be returned as a result.
          */
-        private volatile InputStream result;
+        private InputStream result;
 
         /**
          * The identifier name of this task in the caches.
          */
-        private String cacheEntryName;
+        private String cacheEntryId;
+
+        /**
+         * The TaskId associated with this task.
+         */
+        private TaskId id;
 
         /**
          * Holds how many bytes were downloaded so far.
          */
-        private int downloadedBytes = 0;
+        private volatile int downloadedBytes = 0;
+
+        /**
+         * Holds the current state of the task.
+         */
+        private volatile TaskState state;
 
         /**
          * Creates a brand new task with a new task-id in the caches.
@@ -126,10 +172,24 @@ public class DownloadManager {
         }
 
         /**
+         * Gets how many bytes were downloaded so far.
+         */
+        public int getDownloadedBytes() {
+            return downloadedBytes;
+        }
+
+        /**
+         * Gets the current state of the task.
+         */
+        public TaskState getState() {
+            return state;
+        }
+
+        /**
          * Gets the identifier name of this task in the caches.
          */
-        public String getCacheEntryName() {
-            return cacheEntryName;
+        public TaskId getId() {
+            return id;
         }
 
         /**
@@ -141,6 +201,8 @@ public class DownloadManager {
             final Downloader downloader = new Downloader();
             InputStream is = null;
             OutputStream os = null;
+
+            activeTasks.put(id, this);
 
             try {
                 os = openDataCacheEntry();
@@ -164,15 +226,22 @@ public class DownloadManager {
                 os.close();
                 os = null;
 
-                result = DownloadManager.this.dataCache.readEntry(cacheEntryName);
+                result = dataCache.readEntry(cacheEntryId);
                 completed = true;
                 onStateChanged(TaskState.DONE);
             } catch (Exception e) {
                 exception = e;
-                onStateChanged(TaskState.ERROR);
+
+                try {
+                    onStateChanged(TaskState.ERROR);
+                } catch (IOException _) {
+                    // ignore failure to persist state change
+                }
             } finally {
                 tryClose(is);
                 tryClose(os);
+
+                activeTasks.remove(id);
 
                 // wakeup all waiting threads
                 finishEvent.signal();
@@ -184,9 +253,10 @@ public class DownloadManager {
          * This is in a separate function, and not in the constructor,
          * to allow subclasses to override and customize this part.
          */
-        void prepare() {
-            this.cacheEntryName = generateCacheEntryName();
-            onStateChanged(TaskState.PENDING);
+        void prepare() throws IOException {
+            this.cacheEntryId = generateCacheEntryId();
+            this.id = new TaskId(this.cacheEntryId);
+            onStateChanged(TaskState.STARTING);
         }
 
         /**
@@ -195,7 +265,7 @@ public class DownloadManager {
          * for resuming suspended downloads or restarting on error.
          */
         protected OutputStream openDataCacheEntry() {
-            return dataCache.createEntry(cacheEntryName);
+            return dataCache.createEntry(cacheEntryId);
         }
 
         /**
@@ -204,7 +274,7 @@ public class DownloadManager {
          * existing name of an existing task, in the case
          * of resuming suspended downloads or restarting on error.
          */
-        protected String generateCacheEntryName() {
+        protected String generateCacheEntryId() {
             return String.format("%s-%s", System.nanoTime(), new File(url.getPath()).getName());
         }
 
@@ -215,14 +285,13 @@ public class DownloadManager {
          * so that if anything happens, it can be reloaded
          * and possibly resumed from its most recent state.
          */
-        private void onStateChanged(TaskState state) {
+        private void onStateChanged(TaskState state) throws IOException {
             ProgressInfo progressInfo = makeProgressInfo(downloadedBytes, state);
 
             persistState(progressInfo);
 
-            if (progressListener != null) {
+            if (progressListener != null)
                 progressListener.onProgress(progressInfo);
-            }
         }
 
         /**
@@ -230,23 +299,19 @@ public class DownloadManager {
          * so that it might be used for resuming or
          * restarting suspended or failed downloads.
          */
-        private void persistState(ProgressInfo progressInfo) {
-            SerializableProgressInfo spi = new SerializableProgressInfo();
+        private void persistState(ProgressInfo progressInfo) throws IOException {
+            ProgressInfo pi = new ProgressInfo();
 
-            spi.url = progressInfo.url;
-            spi.state = progressInfo.state;
-            spi.downloadedBytes = progressInfo.downloadedBytes;
+            pi.url = progressInfo.url;
+            pi.state = progressInfo.state;
+            pi.downloadedBytes = progressInfo.downloadedBytes;
 
             OutputStream os = null;
 
             try {
-                taskCache.deleteEntry(cacheEntryName);
-                os = taskCache.createEntry(cacheEntryName);
-
-                ObjectOutputStream oos = new ObjectOutputStream(os);
-                oos.writeObject(spi);
-            } catch(Exception _) {
-                // ignored
+                taskCache.deleteEntry(cacheEntryId);
+                os = taskCache.createEntry(cacheEntryId);
+                ProgressInfo.serialize(pi, os);
             } finally {
                 tryClose(os);
             }
@@ -281,6 +346,7 @@ public class DownloadManager {
          * close to completion, this may not actually
          * have an effect, since it may complete before
          * it gets a chance to stop.
+         *
          * @param mayInterruptIfRunning If false, does nothing.
          * @return True if the task was cancelled before it was completed.
          */
@@ -313,6 +379,7 @@ public class DownloadManager {
 
         /**
          * Gets the input stream containing the downloaded bytes.
+         *
          * @return An open, fully downloaded input stream.
          * @throws InterruptedException
          * @throws ExecutionException
@@ -328,7 +395,8 @@ public class DownloadManager {
          * Gets the input stream containing the downloaded bytes,
          * if the download was completed until the specified time.
          * Otherwise, throws an error.
-         * @param l Length of time to wait, in specified time units.
+         *
+         * @param l        Length of time to wait, in specified time units.
          * @param timeUnit The time unit associated with {@code l}
          * @return An open, fully downloaded input stream.
          * @throws InterruptedException
@@ -344,6 +412,7 @@ public class DownloadManager {
 
         /**
          * Throws an exception if the task were cancelled or aborted.
+         *
          * @throws InterruptedException
          * @throws ExecutionException
          */
@@ -366,11 +435,12 @@ public class DownloadManager {
      * content download from scratch.
      */
     private class RestartedTask extends Task {
-        private final String existingCacheEntryName;
+        private final String existingCacheEntryId;
 
         /**
          * Creates a new restarted task from an existing one.
          * Throws an exception if the specified task is currently running.
+         *
          * @throws IllegalArgumentException
          */
         public RestartedTask(Task task, ProgressListener progressListener) throws IllegalArgumentException {
@@ -379,18 +449,18 @@ public class DownloadManager {
             if (!task.isDone())
                 throw new IllegalArgumentException("Attempt to restart a running task.");
 
-            existingCacheEntryName = task.getCacheEntryName();
+            existingCacheEntryId = task.getId().getCacheEntryId();
         }
 
         @Override
         protected OutputStream openDataCacheEntry() {
-            dataCache.deleteEntry(existingCacheEntryName);
-            return dataCache.createEntry(existingCacheEntryName);
+            dataCache.deleteEntry(existingCacheEntryId);
+            return dataCache.createEntry(existingCacheEntryId);
         }
 
         @Override
-        public String generateCacheEntryName() {
-            return existingCacheEntryName;
+        public String generateCacheEntryId() {
+            return existingCacheEntryId;
         }
     }
 
@@ -405,21 +475,67 @@ public class DownloadManager {
 
     enum TaskState {
         PENDING,
+        STARTING,
+        IN_PROGRESS,
         CANCELLED,
         DONE,
-        ERROR,
-        IN_PROGRESS
+        ERROR
     }
 
-    public class SerializableProgressInfo implements Serializable {
-        public int version = 1;
-        public URL url;
-        public TaskState state;
-        public int downloadedBytes;
+    public class TaskId {
+        private final String cacheEntryId;
+
+        TaskId(String cacheEntryId) {
+            this.cacheEntryId = cacheEntryId;
+        }
+
+        public String getCacheEntryId() {
+            return cacheEntryId;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            TaskId taskId = (TaskId) o;
+
+            return cacheEntryId != null ? cacheEntryId.equals(taskId.cacheEntryId) : taskId.cacheEntryId == null;
+
+        }
+
+        @Override
+        public int hashCode() {
+            return cacheEntryId != null ? cacheEntryId.hashCode() : 0;
+        }
     }
 
-    public class ProgressInfo {
-        public Task task;
+    public static class ProgressInfo implements Serializable {
+        static ProgressInfo deserialize(InputStream is) throws IOException {
+            ObjectInputStream ois = new ObjectInputStream(is);
+
+            ProgressInfo pi;
+
+            try {
+                pi = (ProgressInfo) ois.readObject();
+            } catch (ClassNotFoundException e) {
+                throw new IOException("Serialized class was not found.", e);
+            }
+
+            return pi;
+        }
+
+        static void serialize(ProgressInfo pi, OutputStream os) throws IOException {
+            ObjectOutputStream oos = new ObjectOutputStream(os);
+            oos.writeObject(pi);
+            oos.flush();
+        }
+
+        ProgressInfo() {
+        } // package-private creation
+
+        private int compatVersion = 1;
+        public transient Task task;
         public URL url;
         public TaskState state;
         public int downloadedBytes;

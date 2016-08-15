@@ -1,9 +1,13 @@
 package la.manga.app.net;
 
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,7 +23,9 @@ import la.manga.app.concurrency.ManualResetEvent;
 import la.manga.app.storage.Cache;
 import la.manga.app.storage.MemoryCache;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class DownloadManagerTest {
     private DownloadManager dm;
@@ -107,7 +113,7 @@ public class DownloadManagerTest {
     public void persistsTaskToCache() throws Exception {
         DownloadManager.Task t = dm.startDownload(url, null);
         t.get();
-        assertTrue(taskCache.hasEntry(t.getCacheEntryName()));
+        assertTrue(taskCache.hasEntry(t.getId().getCacheEntryId()));
     }
 
     @Test
@@ -135,7 +141,7 @@ public class DownloadManagerTest {
         t = dm.restartDownload(t, new DownloadManager.ProgressListener() {
             @Override
             public void onProgress(DownloadManager.ProgressInfo progressInfo) {
-                if (progressInfo.state == DownloadManager.TaskState.PENDING
+                if (progressInfo.state == DownloadManager.TaskState.STARTING
                         && progressInfo.downloadedBytes == 0)
                     restarted[0] = true;
             }
@@ -148,20 +154,67 @@ public class DownloadManagerTest {
         assertEquals(1, dataCache.getEntryNames().size());
     }
 
+    @Test
+    public void getsAllTaskIds() throws Exception {
+        final boolean[] cancelledFlag = new boolean[]{false};
+
+        DownloadManager.Task t1 = dm.startDownload(url, null);
+        DownloadManager.Task t2 = cancelledScenario(cancelledFlag).run();
+
+        t1.get();
+
+        List<DownloadManager.TaskId> tasks = dm.getTaskIds();
+
+        assertTrue(Iterables.any(tasks, Predicates.equalTo(t1.getId())));
+        assertTrue(Iterables.any(tasks, Predicates.equalTo(t2.getId())));
+    }
+
+    @Test
+    public void getsTaskStatesFromIds() throws Exception {
+        final boolean[] cancelledFlag = new boolean[]{false};
+
+        DownloadManager.Task t1 = dm.startDownload(url, null);
+        DownloadManager.Task t2 = cancelledScenario(cancelledFlag).run();
+
+        t1.get();
+
+        assertEquals(DownloadManager.TaskState.DONE, dm.getTaskState(t1.getId()));
+        assertEquals(DownloadManager.TaskState.CANCELLED, dm.getTaskState(t2.getId()));
+    }
+
     /**
      * TODO
      * 4. resume download
      * 5. restart download
      */
 
+    private ControlledProgressScenario cancelledScenario(final boolean[] cancelledFlag) {
+        return new ControlledProgressScenario() {
+            @Override
+            protected void onProgress() {
+                task.cancel(true);
+            }
+
+            @Override
+            protected void onCancelled() {
+                cancelledFlag[0] = true;
+            }
+        };
+    }
+
     private abstract class ControlledProgressScenario {
         private final ManualResetEvent madeSomeProgress = new ManualResetEvent();
         private final ManualResetEvent continueEvent = new ManualResetEvent();
         protected DownloadManager.Task task;
 
-        protected void onProgress() {}
-        protected void onCancelled() {}
-        protected void onError() {}
+        protected void onProgress() {
+        }
+
+        protected void onCancelled() {
+        }
+
+        protected void onError() {
+        }
 
         public DownloadManager.Task run() throws Exception {
             try {
@@ -179,11 +232,11 @@ public class DownloadManagerTest {
             return task;
         }
 
-        private void startTask() {
+        private void startTask() throws IOException {
             task = dm.startDownload(url, new DownloadManager.ProgressListener() {
                 @Override
                 public void onProgress(DownloadManager.ProgressInfo progressInfo) {
-                    if (progressInfo.state == DownloadManager.TaskState.PENDING)
+                    if (progressInfo.state == DownloadManager.TaskState.STARTING)
                         return;
 
                     madeSomeProgress.signal();

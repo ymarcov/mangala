@@ -25,4 +25,5 @@ dependencies {
     testCompile 'org.hamcrest:hamcrest-junit:2.0.0.0'
     testCompile 'org.nanohttpd:nanohttpd:2.2.0'
     compile 'com.android.support:appcompat-v7:24.1.1'
+    compile 'com.google.guava:guava:19.0'
 }
