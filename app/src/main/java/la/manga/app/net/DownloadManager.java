@@ -25,6 +25,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import la.manga.app.concurrency.OneShotEvent;
 import la.manga.app.storage.Cache;
@@ -37,7 +38,7 @@ public class DownloadManager {
     private final Cache dataCache;
     private final Executor executor;
     private final Map<TaskId, Task> activeTasks = new HashMap<>();
-    private final Random idTokenGenerator = new Random(System.nanoTime());
+    private AtomicInteger nextIdToken = new AtomicInteger(0);
     private volatile Downloader downloader = new Downloader();
     private volatile int chunkSize = 0x10000;
 
@@ -416,8 +417,8 @@ public class DownloadManager {
          * of resuming suspended downloads or restarting on error.
          */
         protected String generateCacheEntryId() {
-            long now = System.nanoTime();
-            int token = idTokenGenerator.nextInt();
+            long now = System.currentTimeMillis();;
+            int token = nextIdToken.incrementAndGet();
             String filename = new File(url.getPath()).getName();
             return String.format("%s.%s-%s", now, token, filename);
         }
