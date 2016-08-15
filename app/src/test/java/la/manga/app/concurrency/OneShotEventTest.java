@@ -9,10 +9,10 @@ import java.util.concurrent.TimeoutException;
 import static org.junit.Assert.*;
 import static org.hamcrest.Matchers.*;
 
-public class ManualResetEventTest {
+public class OneShotEventTest {
     private static final long timerTolerance_ns = TimeUnit.MILLISECONDS.toNanos(5);
 
-    private ManualResetEvent mre;
+    private OneShotEvent ose;
 
     private Thread startThread(Runnable r) {
         Thread t = new Thread(r);
@@ -22,7 +22,7 @@ public class ManualResetEventTest {
 
     @Before
     public void setUp() {
-        mre = new ManualResetEvent();
+        ose = new OneShotEvent();
     }
 
     @Test
@@ -30,11 +30,11 @@ public class ManualResetEventTest {
         startThread(new Runnable() {
             @Override
             public void run() {
-                mre.signal();
+                ose.signal();
             }
         });
 
-        mre.waitForSignal();
+        ose.waitForSignal();
     }
 
     @Test
@@ -46,7 +46,7 @@ public class ManualResetEventTest {
         long start = System.nanoTime();
 
         try {
-            mre.waitForSignal(expectedElapsed_ms);
+            ose.waitForSignal(expectedElapsed_ms);
         } catch (TimeoutException _) {
             timeoutOccurred = true;
         }
@@ -75,11 +75,11 @@ public class ManualResetEventTest {
                         // ignored
                     }
 
-                    mre.signal();
+                    ose.signal();
                 }
             });
 
-            mre.waitForSignal(expectedElapsed_ms * 2);
+            ose.waitForSignal(expectedElapsed_ms * 2);
         } catch (TimeoutException _) {
             timeoutOccurred = true;
         }
@@ -93,11 +93,11 @@ public class ManualResetEventTest {
 
     @Test
     public void doesntWaitWithTimeoutIfAlreadySignalled() throws Exception {
-        mre.signal();
+        ose.signal();
 
         long start = System.nanoTime();
 
-        mre.waitForSignal(100);
+        ose.waitForSignal(100);
 
         long end = System.nanoTime();
 

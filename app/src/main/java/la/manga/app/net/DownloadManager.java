@@ -26,7 +26,7 @@ import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import la.manga.app.concurrency.ManualResetEvent;
+import la.manga.app.concurrency.OneShotEvent;
 import la.manga.app.storage.Cache;
 
 /**
@@ -258,7 +258,7 @@ public class DownloadManager {
         private volatile boolean cancelled = false;
         private volatile Throwable exception = null;
         private volatile boolean completed = false;
-        private final ManualResetEvent finishEvent = new ManualResetEvent();
+        private final OneShotEvent finishEvent = new OneShotEvent();
 
         /**
          * The stream of downloaded bytes to be returned as a result.

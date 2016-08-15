@@ -21,7 +21,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import la.manga.app.concurrency.ManualResetEvent;
+import la.manga.app.concurrency.OneShotEvent;
 import la.manga.app.storage.Cache;
 import la.manga.app.storage.MemoryCache;
 
@@ -300,8 +300,8 @@ public class DownloadManagerTest {
     }
 
     private abstract class ControlledProgressScenario {
-        private final ManualResetEvent madeSomeProgress = new ManualResetEvent();
-        private final ManualResetEvent continueEvent = new ManualResetEvent();
+        private final OneShotEvent madeSomeProgress = new OneShotEvent();
+        private final OneShotEvent continueEvent = new OneShotEvent();
         protected DownloadManager.Task task;
 
         protected void onProgress() {

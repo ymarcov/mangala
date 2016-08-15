@@ -5,7 +5,7 @@ import java.util.concurrent.TimeoutException;
 /**
  * A manual reset event.
  */
-public class ManualResetEvent {
+public class OneShotEvent {
     private volatile boolean set = false;
     private final Object syncObject = new Object();
 
