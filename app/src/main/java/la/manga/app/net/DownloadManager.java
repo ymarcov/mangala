@@ -170,7 +170,7 @@ public class DownloadManager {
         return clearTasksByState(TaskState.CANCELLED);
     }
 
-    private synchronized FutureTask<Void> clearTasksByState(final TaskState state) throws IOException {
+    private synchronized Future<Void> clearTasksByState(final TaskState state) throws IOException {
         FutureTask<Void> task = new FutureTask<>(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
