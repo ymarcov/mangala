@@ -110,30 +110,6 @@ public class DownloadManagerTest {
     }
 
     @Test
-    public void restartsDownload() throws Exception {
-        final boolean[] cancelled = new boolean[]{false};
-        DownloadManager.Task t = cancelledScenario(cancelled).run();
-
-        final boolean[] restarted = new boolean[]{false};
-
-        t = dm.restartDownload(t.getId(), new DownloadManager.ProgressListener() {
-            @Override
-            public void onProgress(DownloadManager.ProgressInfo progressInfo) {
-                if (progressInfo.state == DownloadManager.TaskState.STARTING
-                        && progressInfo.downloadedBytes == 0) {
-                    restarted[0] = true;
-                }
-            }
-        });
-
-        t.get();
-
-        assertTrue(restarted[0]);
-        assertEquals(1, taskCache.getEntryNames().size());
-        assertEquals(1, dataCache.getEntryNames().size());
-    }
-
-    @Test
     public void getsAllTaskIds() throws Exception {
         final boolean[] cancelledFlag = new boolean[]{false};
 
@@ -159,6 +135,30 @@ public class DownloadManagerTest {
 
         assertEquals(DownloadManager.TaskState.DONE, dm.getTaskState(t1.getId()));
         assertEquals(DownloadManager.TaskState.CANCELLED, dm.getTaskState(t2.getId()));
+    }
+
+    @Test
+    public void restartsDownload() throws Exception {
+        final boolean[] cancelled = new boolean[]{false};
+        DownloadManager.Task t = cancelledScenario(cancelled).run();
+
+        final boolean[] restarted = new boolean[]{false};
+
+        t = dm.restartDownload(t.getId(), new DownloadManager.ProgressListener() {
+            @Override
+            public void onProgress(DownloadManager.ProgressInfo progressInfo) {
+                if (progressInfo.state == DownloadManager.TaskState.STARTING
+                        && progressInfo.downloadedBytes == 0) {
+                    restarted[0] = true;
+                }
+            }
+        });
+
+        t.get();
+
+        assertTrue(restarted[0]);
+        assertEquals(1, taskCache.getEntryNames().size());
+        assertEquals(1, dataCache.getEntryNames().size());
     }
 
     /**
