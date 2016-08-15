@@ -198,17 +198,19 @@ public class DownloadManager {
      * @param url              The URL to download.
      * @param progressListener A progress listener updated on task state changes.
      * @return An async task handle for the specified download.
+     * @throw IOException
      */
     public Task startDownload(URL url, ProgressListener progressListener) throws IOException {
         return startTask(new Task(url, progressListener));
     }
 
     /**
-     * Restarts an existing download task.
+     * Restarts an existing incomplete download task.
      *
      * @param taskId           The id of the task to restart.
      * @param progressListener A progress listener updated on task state changes.
      * @return An async task handle for the specified download.
+     * @throw IOException
      */
     public Task restartDownload(TaskId taskId, ProgressListener progressListener) throws IOException {
         InputStream is = taskCache.readEntry(taskId.getCacheEntryId());
@@ -216,6 +218,14 @@ public class DownloadManager {
         return startTask(new RestartedTask(pi, progressListener));
     }
 
+    /**
+     * Resumes an existing incomplete download task.
+     *
+     * @param taskId           The id of the task to restart.
+     * @param progressListener A progress listener updated on task state changes.
+     * @return An async task handle for the specified download.
+     * @throws IOException
+     */
     public Task resumeDownload(TaskId taskId, ProgressListener progressListener) throws IOException {
         InputStream is = taskCache.readEntry(taskId.getCacheEntryId());
         ProgressInfo pi = ProgressInfo.deserialize(is);
