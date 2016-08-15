@@ -24,6 +24,7 @@ import la.manga.app.storage.Cache;
 import la.manga.app.storage.MemoryCache;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -62,9 +63,10 @@ public class DownloadManagerTest {
                 }
             }));
 
-
-        for (DownloadManager.Task t : tasks)
+        for (DownloadManager.Task t : tasks) {
             t.get();
+            assertFalse(dm.isActive(t.getId()));
+        }
 
         for (Integer db : downloadedBytes.values())
             assertEquals(TestHttpServer.TEST_FILE_SIZE, db.intValue());
@@ -86,8 +88,9 @@ public class DownloadManagerTest {
             }
         };
 
-        scenario.run();
+        DownloadManager.Task task = scenario.run();
 
+        assertFalse(dm.isActive(task.getId()));
         assertTrue(cancelled[0]);
     }
 

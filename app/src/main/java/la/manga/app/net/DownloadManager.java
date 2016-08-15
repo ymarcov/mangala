@@ -73,12 +73,26 @@ public class DownloadManager {
      * @throws IOException
      */
     public synchronized TaskState getTaskState(TaskId id) throws IOException {
-        if (activeTasks.containsKey(id))
+        if (isActive(id))
             return activeTasks.get(id).getState();
 
         InputStream is = taskCache.readEntry(id.getCacheEntryId());
         ProgressInfo pi = ProgressInfo.deserialize(is);
         return pi.state;
+    }
+
+    public synchronized boolean isActive(TaskId id) {
+        return activeTasks.containsKey(id);
+    }
+
+    private synchronized void setActiveState(Task t, boolean active) {
+        TaskId id = t.getId();
+
+        if (active)
+            activeTasks.put(id, t);
+        else
+            if (activeTasks.containsKey(id))
+                activeTasks.remove(id);
     }
 
     /**
@@ -202,7 +216,7 @@ public class DownloadManager {
             InputStream is = null;
             OutputStream os = null;
 
-            activeTasks.put(id, this);
+            setActiveState(this, true);
 
             try {
                 os = openDataCacheEntry();
@@ -241,7 +255,7 @@ public class DownloadManager {
                 tryClose(is);
                 tryClose(os);
 
-                activeTasks.remove(id);
+                setActiveState(this, false);
 
                 // wakeup all waiting threads
                 finishEvent.signal();
