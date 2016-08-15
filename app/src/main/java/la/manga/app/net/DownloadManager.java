@@ -33,6 +33,7 @@ public class DownloadManager {
     private final Cache dataCache;
     private final Executor executor;
     private final Map<TaskId, Task> activeTasks = new HashMap<>();
+    private volatile Downloader downloader = new Downloader();
     private volatile int chunkSize = 0x10000;
 
     /**
@@ -50,6 +51,25 @@ public class DownloadManager {
         this.taskCache = taskCache;
         this.dataCache = dataCache;
         this.executor = executor;
+    }
+
+    /**
+     * Gets the downloader to be used for downloading content.
+     *
+     * @return The current downloader.
+     */
+    public Downloader getDownloader() {
+        return downloader;
+    }
+
+    /**
+     * Sets the downloader to be used for downloading content.
+     * This will not affect currently active downloads.
+     *
+     * @param downloader The new downloader to use.
+     */
+    public void setDownloader(Downloader downloader) {
+        this.downloader = downloader;
     }
 
     /**
@@ -317,8 +337,7 @@ public class DownloadManager {
          * @throws IOException
          */
         protected InputStream downloadUrl() throws IOException {
-            final Downloader downloader = new Downloader();
-            return downloader.download(url);
+            return getDownloader().download(url);
         }
 
         /**
@@ -557,8 +576,7 @@ public class DownloadManager {
 
         @Override
         protected InputStream downloadUrl() throws IOException {
-            final Downloader downloader = new Downloader();
-            return downloader.downloadWithOffset(getUrl(), downloadedBytes);
+            return getDownloader().downloadWithOffset(getUrl(), downloadedBytes);
         }
 
         @Override
