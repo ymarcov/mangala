@@ -15,7 +15,7 @@ public interface Cache {
      * @return An output stream for the new entry.
      * @throws IllegalArgumentException Entry name already exists in the cache.
      */
-    OutputStream createEntry(String name) throws IllegalArgumentException;
+    OutputStream createEntry(String name);
 
     /**
      * Gets the names of all entries in the cache.

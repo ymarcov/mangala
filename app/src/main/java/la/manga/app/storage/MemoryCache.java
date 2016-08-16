@@ -15,7 +15,7 @@ public class MemoryCache implements Cache {
     private HashMap<String, ByteArrayOutputStream> entries = new HashMap<>();
 
     @Override
-    public synchronized OutputStream createEntry(String name) throws IllegalArgumentException {
+    public synchronized OutputStream createEntry(String name) {
         if (hasEntry(name))
             throw new IllegalArgumentException("An entry by the specified name already exists in the cache.");
 
