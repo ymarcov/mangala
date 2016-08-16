@@ -474,6 +474,7 @@ public class DownloadManager {
         private ProgressInfo makeProgressInfo(int totalBytes, TaskState state) {
             ProgressInfo pi = new ProgressInfo();
 
+            pi.task = this;
             pi.taskId = getId();
             pi.url = url;
             pi.downloadedBytes = totalBytes;
@@ -738,6 +739,7 @@ public class DownloadManager {
         } // package-private creation
 
         private int compatVersion = 1;
+        public transient Task task;
         public TaskId taskId;
         public URL url;
         public TaskState state;
