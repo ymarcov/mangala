@@ -49,6 +49,11 @@ public interface Cache {
     void deleteEntry(String name);
 
     /**
+     * Deletes all entries from the cache.
+     */
+    void clear();
+
+    /**
      * Checks if an entry exists in the cache.
      *
      * @param name The name of the entry.

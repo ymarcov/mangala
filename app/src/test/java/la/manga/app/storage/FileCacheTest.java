@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -34,7 +35,7 @@ public class FileCacheTest {
 
     @Test
     public void singleEntry() throws Exception {
-        String entryName = getEntryName();
+        String entryName = nextEntryName();
 
         commitBytes(cache.createEntry(entryName), new byte[]{1, 2, 3, 4});
 
@@ -49,7 +50,7 @@ public class FileCacheTest {
 
     @Test
     public void appendsToEntry() throws Exception {
-        String entryName = getEntryName();
+        String entryName = nextEntryName();
 
         commitBytes(cache.createEntry(entryName), new byte[]{1, 2});
 
@@ -64,7 +65,7 @@ public class FileCacheTest {
 
     @Test
     public void deletesEntry() throws Exception {
-        String entryName = getEntryName();
+        String entryName = nextEntryName();
 
         cache.createEntry(entryName).close();
 
@@ -77,8 +78,8 @@ public class FileCacheTest {
 
     @Test
     public void multipleEntries() throws Exception {
-        String e1 = getEntryName();
-        String e2 = getEntryName();
+        String e1 = nextEntryName();
+        String e2 = nextEntryName();
 
         commitBytes(cache.createEntry(e1), new byte[]{1});
         commitBytes(cache.createEntry(e2), new byte[]{2});
@@ -90,6 +91,19 @@ public class FileCacheTest {
 
         assertArrayEquals(new byte[]{1}, readBytes(cache.readEntry(e1)));
         assertArrayEquals(new byte[]{2}, readBytes(cache.readEntry(e2)));
+    }
+
+    @Test
+    public void clearsCache() throws Exception {
+        cache.createEntry(nextEntryName()).close();
+        cache.createEntry(nextEntryName()).close();
+        cache.createEntry(nextEntryName()).close();
+
+        assertEquals(3, cache.getEntryNames().size());
+
+        cache.clear();
+
+        assertEquals(0, cache.getEntryNames().size());
     }
 
     private void commitBytes(OutputStream os, byte[] buffer) throws IOException {
@@ -115,7 +129,7 @@ public class FileCacheTest {
         }
     }
 
-    private String getEntryName() {
+    private String nextEntryName() {
         return "test" + nextEntryId++;
     }
 }

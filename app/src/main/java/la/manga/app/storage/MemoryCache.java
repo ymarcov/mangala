@@ -52,6 +52,11 @@ public class MemoryCache implements Cache {
     }
 
     @Override
+    public void clear() {
+        entries.clear();
+    }
+
+    @Override
     public synchronized boolean hasEntry(String name) {
         return entries.containsKey(name);
     }

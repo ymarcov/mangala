@@ -94,6 +94,12 @@ public class FileCache implements Cache {
     }
 
     @Override
+    public void clear() {
+        for (String entry : getEntryNames())
+            deleteEntry(entry);
+    }
+
+    @Override
     public boolean hasEntry(String name) {
         File file = new File(dir, name);
         return file.exists();
