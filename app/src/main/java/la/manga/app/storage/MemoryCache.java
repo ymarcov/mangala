@@ -52,7 +52,7 @@ public class MemoryCache implements Cache {
     }
 
     @Override
-    public void clear() {
+    public synchronized void clear() {
         entries.clear();
     }
 

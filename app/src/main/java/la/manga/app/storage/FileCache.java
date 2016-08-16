@@ -31,7 +31,7 @@ public class FileCache implements Cache {
 
 
     @Override
-    public OutputStream createEntry(String name) {
+    public synchronized OutputStream createEntry(String name) {
         File file = new File(dir, name);
 
         if (file.exists())
@@ -45,7 +45,7 @@ public class FileCache implements Cache {
     }
 
     @Override
-    public List<String> getEntryNames() {
+    public synchronized List<String> getEntryNames() {
         return Lists.transform(Arrays.asList(dir.listFiles()), new Function<File, String>() {
             @Override
             public String apply(File file) {
@@ -55,7 +55,7 @@ public class FileCache implements Cache {
     }
 
     @Override
-    public InputStream readEntry(String name) {
+    public synchronized InputStream readEntry(String name) {
         File file = new File(dir, name);
 
         if (!file.exists())
@@ -69,7 +69,7 @@ public class FileCache implements Cache {
     }
 
     @Override
-    public OutputStream appendToEntry(String name) {
+    public synchronized OutputStream appendToEntry(String name) {
         File file = new File(dir, name);
 
         if (!file.exists())
@@ -83,7 +83,7 @@ public class FileCache implements Cache {
     }
 
     @Override
-    public void deleteEntry(String name) {
+    public synchronized void deleteEntry(String name) {
         File file = new File(dir, name);
 
         if (!file.exists())
@@ -94,13 +94,13 @@ public class FileCache implements Cache {
     }
 
     @Override
-    public void clear() {
+    public synchronized void clear() {
         for (String entry : getEntryNames())
             deleteEntry(entry);
     }
 
     @Override
-    public boolean hasEntry(String name) {
+    public synchronized boolean hasEntry(String name) {
         File file = new File(dir, name);
         return file.exists();
     }
