@@ -673,7 +673,7 @@ public class DownloadManager {
         void onProgress(ProgressInfo progressInfo);
     }
 
-    enum TaskState {
+    public enum TaskState {
         PENDING,
         STARTING,
         IN_PROGRESS,
