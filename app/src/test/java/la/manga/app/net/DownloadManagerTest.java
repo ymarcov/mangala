@@ -268,6 +268,24 @@ public class DownloadManagerTest {
         assertEquals(0, dataCache.getEntryNames().size());
     }
 
+    @Test
+    public void cantDeleteActiveTask() throws Exception {
+        final boolean[] deleteFailed = new boolean[]{false};
+
+        new ControlledProgressScenario() {
+            @Override
+            protected void onProgress() {
+                try {
+                    dm.deleteTaskFromCache(task.getId());
+                } catch (IllegalArgumentException _) {
+                    deleteFailed[0] = true;
+                }
+            }
+        }.run();
+
+        assertTrue(deleteFailed[0]);
+    }
+
     private class FabricatedCaches {
         public final Cache tasks = new MemoryCache();
         public final Cache data = new MemoryCache();
