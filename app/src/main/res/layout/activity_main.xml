@@ -32,5 +32,13 @@
             android:gravity="center_vertical|center_horizontal"
             android:textSize="13sp"
             android:alpha="0.5"
+            android:id="@+id/subtitle"
+            />
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/contentArea"
+            android:visibility="gone"
             />
 </LinearLayout>
