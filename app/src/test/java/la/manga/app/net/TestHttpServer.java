@@ -26,6 +26,7 @@ public class TestHttpServer extends NanoHTTPD {
     public final static int TEST_FILE_SIZE = 0x100000;
     private final byte[] buffer = getBuffer();
     private boolean shouldFail = false;
+    private boolean useChunked = true;
 
     public TestHttpServer() {
         super(PORT);
@@ -39,6 +40,10 @@ public class TestHttpServer extends NanoHTTPD {
 
     public void setFailAlways(boolean b) {
         shouldFail = b;
+    }
+
+    public void setUseChunked(boolean b) {
+        useChunked = b;
     }
 
     @Override
@@ -63,7 +68,10 @@ public class TestHttpServer extends NanoHTTPD {
 
         ByteArrayInputStream is = new ByteArrayInputStream(buffer, offset, count);
 
-        return newChunkedResponse(NanoHTTPD.Response.Status.OK, "application/zip", is);
+        if (useChunked)
+            return newChunkedResponse(NanoHTTPD.Response.Status.OK, "application/zip", is);
+        else
+            return newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/zip", is, (long)count);
     }
 
     private byte[] getBuffer() {

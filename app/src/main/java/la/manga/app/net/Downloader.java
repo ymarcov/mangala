@@ -78,7 +78,7 @@ public class Downloader {
 
         establishConnection(conn);
 
-        return conn.getInputStream();
+        return new InputStream(conn);
     }
 
     /**
@@ -126,5 +126,56 @@ public class Downloader {
 
         if (rc != HttpURLConnection.HTTP_OK && rc != HttpURLConnection.HTTP_PARTIAL)
             throw new IOException("HTTP server responded with error: " + rc);
+    }
+
+    public class InputStream extends java.io.InputStream {
+        private final HttpURLConnection conn;
+        private final java.io.InputStream is;
+        private final int contentLength;
+
+        InputStream(HttpURLConnection conn) throws IOException {
+            this.conn = conn;
+            this.contentLength = conn.getContentLength();
+            this.is = conn.getInputStream();
+        }
+
+        public int getLength() {
+            return contentLength;
+        }
+
+        @Override
+        public int read() throws IOException {
+            return is.read();
+        }
+
+        @Override
+        public void close() throws IOException {
+            is.close();
+        }
+
+        @Override
+        public long skip(long n) throws IOException {
+            return is.skip(n);
+        }
+
+        @Override
+        public int available() throws IOException {
+            return is.available();
+        }
+
+        @Override
+        public synchronized void mark(int readlimit) {
+            is.mark(readlimit);
+        }
+
+        @Override
+        public synchronized void reset() throws IOException {
+            super.reset();
+        }
+
+        @Override
+        public boolean markSupported() {
+            return is.markSupported();
+        }
     }
 }

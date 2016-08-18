@@ -106,6 +106,23 @@ public class DownloaderTest {
         assertArrayEquals(oneShotBuffer, chunkBuffer);
     }
 
+    @Test
+    public void getsContentLength() throws Exception {
+        server.setUseChunked(false);
+        URL url = new URL(TestHttpServer.TEST_FILE);
+        Downloader.InputStream is = downloader.download(url);
+
+        assertEquals(TestHttpServer.TEST_FILE_SIZE, is.getLength());
+    }
+
+    @Test
+    public void contentLengthIsNegativeIfChunked() throws Exception {
+        URL url = new URL(TestHttpServer.TEST_FILE);
+        Downloader.InputStream is = downloader.download(url);
+
+        assertEquals(-1, is.getLength());
+    }
+
     private int readIntoOffset(InputStream is, char[] buffer, int offset) throws IOException {
         try {
             InputStreamReader isr = new InputStreamReader(is);
