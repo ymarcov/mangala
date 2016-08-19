@@ -31,6 +31,8 @@ public class MainActivity extends AppCompatActivity {
 
                 RelativeLayout layout = (RelativeLayout) findViewById(R.id.contentArea);
                 layout.setVisibility(View.VISIBLE);
+
+                startActivity(new Intent(MainActivity.this, DownloadsActivity.class));
             }
         }, 1500);
     }
