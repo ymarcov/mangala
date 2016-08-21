@@ -26,4 +26,5 @@ dependencies {
     testCompile 'org.nanohttpd:nanohttpd:2.2.0'
     compile 'com.android.support:appcompat-v7:24.1.1'
     compile 'com.google.guava:guava:19.0'
+    compile 'com.rometools:rome:1.7.0'
 }
