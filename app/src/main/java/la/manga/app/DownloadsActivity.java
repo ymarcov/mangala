@@ -1,5 +1,6 @@
 package la.manga.app;
 
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
@@ -15,6 +16,12 @@ public class DownloadsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_downloads);
         Toolbar tb = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(tb);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        startActivity(new Intent(this, TalksActivity.class));
     }
 
     @Override

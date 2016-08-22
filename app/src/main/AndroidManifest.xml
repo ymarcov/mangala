@@ -30,6 +30,7 @@
             android:exported="false" />
 
         <activity android:name=".DownloadsActivity" />
+        <activity android:name=".TalksActivity"></activity>
     </application>
 
 </manifest>
