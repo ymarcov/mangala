@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".DownloadsActivity">
     <item
-        android:id="@+id/action_settings"
+        android:id="@+id/btnSettings"
         android:orderInCategory="100"
         android:title="Button"
         app:showAsAction="never" />
