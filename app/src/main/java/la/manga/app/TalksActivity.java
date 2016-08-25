@@ -48,14 +48,13 @@ public class TalksActivity extends AppCompatActivity {
         talksView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                Log.i(TAG, "ON_SCROLLED!");
-                int lastVisibleItem = llm.findLastVisibleItemPosition();
+                int lastVisibleItem = llm.findLastCompletelyVisibleItemPosition();
 
                 if (lastVisibleItem == talkAdapter.getItemCount() - 1)
                     fetchMoreTalks(new Runnable() {
                         @Override
                         public void run() {
-                            talksView.fling(0, 100);
+                            talksView.fling(0, 1000);
                         }
                     });
             }

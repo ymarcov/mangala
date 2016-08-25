@@ -24,6 +24,7 @@ public class DtTalkProvider implements TalkProvider {
     }
 
     private static final String TAG = DtTalkProvider.class.getName();
+    private static final String SERVER_IP = "46.101.209.138";
 
     private final JSONParser parser = new JSONParser();
     private final String baseUrl;
@@ -31,9 +32,9 @@ public class DtTalkProvider implements TalkProvider {
 
     public DtTalkProvider(TalkType type) {
         if (type == TalkType.EVENING)
-            baseUrl = "http://beta.dhammatalks.org/en/evening.json";
+            baseUrl = "http://" + SERVER_IP + "/en/evening.json";
         else if (type == TalkType.MORNING)
-            baseUrl = "http://beta.dhammatalks.org/en/morning.json";
+            baseUrl = "http://" + SERVER_IP + "/en/morning.json";
         else
             throw new IllegalArgumentException("Unsupported talk type.");
     }
