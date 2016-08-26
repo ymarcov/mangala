@@ -21,7 +21,6 @@ public class DownloadsActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        startActivity(new Intent(this, TalksActivity.class));
     }
 
     @Override

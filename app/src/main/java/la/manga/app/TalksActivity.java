@@ -9,6 +9,8 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 
+import com.google.common.base.Function;
+
 import java.util.List;
 
 import la.manga.app.entities.DtTalkProvider;
@@ -22,6 +24,8 @@ public class TalksActivity extends AppCompatActivity {
     private TalkProvider talkProvider = new DtTalkProvider(DtTalkProvider.TalkType.EVENING);
     private RecyclerView talksView;
     private TalkAdapter talkAdapter;
+    private int fetchCount = 10;
+    private volatile boolean fetching = false;
     private Handler handler;
 
     @Override
@@ -48,19 +52,16 @@ public class TalksActivity extends AppCompatActivity {
         talksView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                int lastVisibleItem = llm.findLastCompletelyVisibleItemPosition();
+                fetchCount = (int)Math.pow(10, Math.max(1, Math.floor(Math.log10(dy))));
 
-                if (lastVisibleItem == talkAdapter.getItemCount() - 1)
-                    fetchMoreTalks(new Runnable() {
-                        @Override
-                        public void run() {
-                            talksView.fling(0, 1000);
-                        }
-                    });
+                int lastVisibleItem = llm.findLastVisibleItemPosition();
+
+                if (lastVisibleItem + fetchCount >= talkAdapter.getItemCount())
+                    fetchMoreTalks(fetchCount, addTalksTo(talkAdapter));
             }
         });
 
-        fetchMoreTalks(null);
+        fetchMoreTalks(fetchCount, addTalksTo(talkAdapter));
     }
 
     @Override
@@ -69,22 +70,37 @@ public class TalksActivity extends AppCompatActivity {
         return true;
     }
 
-    public void fetchMoreTalks(final Runnable onComplete) {
+    private Function<List<Talk>, Void> addTalksTo(final TalkAdapter adapter) {
+        return new Function<List<Talk>, Void>() {
+            @Override
+            public Void apply(List<Talk> talks) {
+                adapter.addAll(talks);
+                return null;
+            }
+        };
+    }
+
+    private void fetchMoreTalks(final int n, final Function<List<Talk>, Void> onComplete) {
+        if (fetching)
+            return;
+
+        Log.i(TAG, "FETCHING MORE TALKS");
+
+        fetching = true;
+
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    final List<Talk> fetched = talkProvider.fetch();
+                    final List<Talk> fetched = talkProvider.fetch(n);
 
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            talkAdapter.addAll(fetched);
+                            onComplete.apply(fetched);
+                            fetching = false;
                         }
                     });
-
-                    if (onComplete != null)
-                        handler.post(onComplete);
                 } catch (Exception e) {
                     Log.e(TAG, "Failed to fetch more talks", e);
                 }

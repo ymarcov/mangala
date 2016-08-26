@@ -29,6 +29,9 @@ public class DtTalkProvider implements TalkProvider {
     private final JSONParser parser = new JSONParser();
     private final String baseUrl;
     private int currentPage = 0;
+    private boolean endOfData = false;
+    private List<Talk> cachedTalks = new ArrayList<>();
+    private JSONArray cachedEntries = new JSONArray();
 
     public DtTalkProvider(TalkType type) {
         if (type == TalkType.EVENING)
@@ -40,20 +43,51 @@ public class DtTalkProvider implements TalkProvider {
     }
 
     @Override
-    public synchronized List<Talk> fetch() {
+    public synchronized List<Talk> fetch(int n) {
+        if (endOfData)
+            return new ArrayList<>();
+
         List<Talk> result = new ArrayList<>();
+        JSONArray salvaged = new JSONArray();
 
-        for (Object entry : fetchEntries())
-            result.add(parseEntry((JSONObject) entry));
+        try {
+            while (n > 0) {
+                JSONObject entry = fetchNextEntry();
+                salvaged.add(entry);
 
-        currentPage++;
+                if (entry == null) {
+                    endOfData = true;
+                    break;
+                }
+
+                Talk talk = parseEntry(entry);
+                result.add(talk);
+
+                n--;
+            }
+        } catch (Exception e) {
+            cachedEntries.addAll(0, salvaged);
+            throw e;
+        }
 
         return result;
     }
 
-    private JSONArray fetchEntries() {
+    private JSONObject fetchNextEntry() {
+        if (cachedEntries.size() == 0)
+            cachedEntries = fetchNextPage();
+
+        if (cachedEntries.size() == 0)
+            return null;
+
+        return (JSONObject) cachedEntries.remove(0);
+    }
+
+    private JSONArray fetchNextPage() {
         try {
-            return (JSONArray) parser.parse(new InputStreamReader(openStream()));
+            JSONArray result = (JSONArray) parser.parse(new InputStreamReader(openStream()));
+            currentPage++;
+            return result;
         } catch (ParseException e) {
             Log.e(TAG, "Parse error while fetching talks: " + e.getMessage(), e);
         } catch (IOException e) {
@@ -65,6 +99,7 @@ public class DtTalkProvider implements TalkProvider {
 
     private InputStream openStream() throws IOException {
         URL url = new URL(String.format(Locale.getDefault(), "%s?page=%d", baseUrl, currentPage));
+        Log.i(TAG, "Fetching entries from URL: " + url);
         return url.openStream();
     }
 
