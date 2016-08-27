@@ -84,8 +84,6 @@ public class TalksActivity extends AppCompatActivity {
         if (fetching)
             return;
 
-        Log.i(TAG, "FETCHING MORE TALKS");
-
         fetching = true;
 
         new Thread(new Runnable() {

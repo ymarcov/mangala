@@ -10,6 +10,7 @@ import org.json.simple.parser.ParseException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Date;
 import java.util.ArrayList;
@@ -20,7 +21,8 @@ import java.util.Locale;
 public class DtTalkProvider implements TalkProvider {
     public enum TalkType {
         EVENING,
-        MORNING
+        MORNING,
+        GUIDED_MEDITATION
     }
 
     private static final String TAG = DtTalkProvider.class.getName();
@@ -30,14 +32,15 @@ public class DtTalkProvider implements TalkProvider {
     private final String baseUrl;
     private int currentPage = 0;
     private boolean endOfData = false;
-    private List<Talk> cachedTalks = new ArrayList<>();
     private JSONArray cachedEntries = new JSONArray();
 
     public DtTalkProvider(TalkType type) {
         if (type == TalkType.EVENING)
-            baseUrl = "http://" + SERVER_IP + "/en/evening.json";
+            baseUrl = "http://" + SERVER_IP + "/en/webservice/talks/1";
         else if (type == TalkType.MORNING)
-            baseUrl = "http://" + SERVER_IP + "/en/morning.json";
+            baseUrl = "http://" + SERVER_IP + "/en/webservice/talks/2";
+        else if (type == TalkType.GUIDED_MEDITATION)
+            baseUrl = "http://" + SERVER_IP + "/en/webservice/talks/4";
         else
             throw new IllegalArgumentException("Unsupported talk type.");
     }
@@ -48,29 +51,35 @@ public class DtTalkProvider implements TalkProvider {
             return new ArrayList<>();
 
         List<Talk> result = new ArrayList<>();
-        JSONArray salvaged = new JSONArray();
 
         try {
-            while (n > 0) {
-                JSONObject entry = fetchNextEntry();
-                salvaged.add(entry);
-
-                if (entry == null) {
-                    endOfData = true;
-                    break;
-                }
-
-                Talk talk = parseEntry(entry);
-                result.add(talk);
-
-                n--;
-            }
+            fillUpTo(result, n);
         } catch (Exception e) {
-            cachedEntries.addAll(0, salvaged);
-            throw e;
+            Log.w(TAG, "Error while fetching talks: " + e.getMessage(), e);
         }
 
         return result;
+    }
+
+    private void fillUpTo(List<Talk> result, int n) throws MalformedURLException {
+        while (n > 0) {
+            JSONObject entry = fetchNextEntry();
+
+            if (entry == null) {
+                endOfData = true;
+                return;
+            }
+
+            try {
+                Talk talk = parseEntry(entry);
+                result.add(talk);
+            } catch (Exception e) {
+                cachedEntries.add(0, entry);
+                throw e;
+            }
+
+            n--;
+        }
     }
 
     private JSONObject fetchNextEntry() {
@@ -103,9 +112,14 @@ public class DtTalkProvider implements TalkProvider {
         return url.openStream();
     }
 
-    private Talk parseEntry(JSONObject entry) {
+    private Talk parseEntry(JSONObject entry) throws MalformedURLException {
+        String title = entry.get("title").toString();
+
         Calendar cal = Calendar.getInstance();
         cal.setTime(Date.valueOf(entry.get("date").toString()));
-        return new Talk(entry.get("title").toString(), cal);
+
+        URL url = new URL(entry.get("url").toString());
+
+        return new Talk(title, cal, url);
     }
 }
