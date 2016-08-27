@@ -18,6 +18,7 @@ import la.manga.app.entities.Talk;
 public class TalkAdapter extends RecyclerView.Adapter<TalkAdapter.ViewHolder> {
     private final int resourceId;
     private final List<Talk> talks = new ArrayList<>();
+    private OnClickListener onClickListener;
 
     public TalkAdapter(int resourceId) {
         this.resourceId = resourceId;
@@ -30,11 +31,18 @@ public class TalkAdapter extends RecyclerView.Adapter<TalkAdapter.ViewHolder> {
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder holder, int position) {
+    public void onBindViewHolder(final ViewHolder holder, int position) {
         holder.tvTitle.setText(talks.get(position).getTitle());
 
         DateFormat format = SimpleDateFormat.getDateInstance();
         holder.tvDate.setText(format.format(talks.get(position).getDate().getTime()));
+
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                notifyOnClick(holder.getAdapterPosition());
+            }
+        });
     }
 
     @Override
@@ -42,9 +50,24 @@ public class TalkAdapter extends RecyclerView.Adapter<TalkAdapter.ViewHolder> {
         return talks.size();
     }
 
+    public void setOnClickListener(OnClickListener onClickListener) {
+        this.onClickListener = onClickListener;
+    }
+
     public void addAll(Collection<Talk> talks) {
         this.talks.addAll(talks);
         notifyDataSetChanged();
+    }
+
+    private void notifyOnClick(int position) {
+        OnClickListener onClickListener = this.onClickListener;
+
+        if (onClickListener != null)
+            onClickListener.onClick(talks.get(position));
+    }
+
+    public interface OnClickListener {
+        void onClick(Talk talk);
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {

@@ -8,6 +8,7 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
+import android.view.View;
 
 import com.google.common.base.Function;
 
@@ -52,12 +53,17 @@ public class TalksActivity extends AppCompatActivity {
         talksView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                fetchCount = (int)Math.pow(10, Math.max(1, Math.floor(Math.log10(dy))));
-
                 int lastVisibleItem = llm.findLastVisibleItemPosition();
 
                 if (lastVisibleItem + fetchCount >= talkAdapter.getItemCount())
                     fetchMoreTalks(fetchCount, addTalksTo(talkAdapter));
+            }
+        });
+
+        talkAdapter.setOnClickListener(new TalkAdapter.OnClickListener() {
+            @Override
+            public void onClick(Talk talk) {
+                Log.i(TAG, "Clicked " + talk.getTitle());
             }
         });
 
