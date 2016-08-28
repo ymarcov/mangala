@@ -56,6 +56,7 @@ public class DtTalkProvider implements TalkProvider {
             fillUpTo(result, n);
         } catch (Exception e) {
             Log.w(TAG, "Error while fetching talks: " + e.getMessage(), e);
+            throw new RuntimeException("Error while fetching talks.", e);
         }
 
         return result;
@@ -67,7 +68,7 @@ public class DtTalkProvider implements TalkProvider {
 
             if (entry == null) {
                 endOfData = true;
-                return;
+                break;
             }
 
             try {

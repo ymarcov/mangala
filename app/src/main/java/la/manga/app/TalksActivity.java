@@ -9,6 +9,7 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
+import android.widget.TextView;
 
 import com.google.common.base.Function;
 
@@ -25,6 +26,7 @@ public class TalksActivity extends AppCompatActivity {
     private TalkProvider talkProvider = new DtTalkProvider(DtTalkProvider.TalkType.EVENING);
     private RecyclerView talksView;
     private TalkAdapter talkAdapter;
+    private TextView tvStatus;
     private int fetchCount = 10;
     private volatile boolean fetching = false;
     private Handler handler;
@@ -44,6 +46,7 @@ public class TalksActivity extends AppCompatActivity {
         super.onResume();
 
         talksView = (RecyclerView) findViewById(R.id.talksListView);
+        tvStatus = (TextView) findViewById(R.id.tvStatus);
         talkAdapter = new TalkAdapter(R.layout.talk_list_item);
         final LinearLayoutManager llm = new LinearLayoutManager(this);
         llm.setOrientation(LinearLayoutManager.VERTICAL);
@@ -92,6 +95,9 @@ public class TalksActivity extends AppCompatActivity {
 
         fetching = true;
 
+        tvStatus.setText(R.string.loading);
+        tvStatus.setVisibility(View.VISIBLE);
+
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -103,6 +109,7 @@ public class TalksActivity extends AppCompatActivity {
                         public void run() {
                             onComplete.apply(fetched);
                             fetching = false;
+                            tvStatus.setVisibility(View.GONE);
                         }
                     });
                 } catch (Exception e) {

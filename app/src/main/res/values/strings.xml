@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">Mangala</string>
-    <string name="load_more">Load More</string>
+    <string name="loading">Loading&#8230;</string>
 </resources>
